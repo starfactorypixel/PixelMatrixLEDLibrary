@@ -556,7 +556,7 @@ int main(void)
   ARGB_Init();  // Initialization
   ARGB_SetBrightness(50);  // Set global brightness to 30%
   // RGB_FillRGB(0, 50, 0, RGB_BUF); // Fill all the strip with Red
-  RGB_BUF = (uint8_t *)TxOut;
+  // RGB_BUF = (uint8_t *)TxOut;
 
   // RGB_BUF[2] = 0;
 
@@ -576,8 +576,8 @@ int main(void)
  
   // RGB_BUF[2] = 0;
   // // RGB_Clear(); // Clear stirp
-  while (RGB_Show() != ARGB_OK); // Update - Option 1
-  HAL_Delay(1000);
+  // while (RGB_Show() != ARGB_OK); // Update - Option 1
+  // HAL_Delay(1000);
 
 #ifndef MATRIX_LIB
   #ifdef ARGB_LIB
@@ -603,6 +603,8 @@ int main(void)
   matrix.ShowLayer(0);
   matrix.ShowLayer(1);
   matrix.ShowLayer(2);
+  uint16_t lenB;
+  matrix.GetFrameBuffer(RGB_BUF, lenB);
 #endif
 
 // HAL_InitTick(0);
@@ -629,20 +631,40 @@ int main(void)
 		uint32_t current_time2 = HAL_GetTick();
 
 
-		if( matrix.GetFrameBufferPtr(RGB_BUF) == true )
-		{
-      FrameBufferLen = matrix.GetFrameBufferLen();
-			HAL_UART_Transmit(&huart1, RGB_BUF, FrameBufferLen, 1000);
-      while (RGB_Show());
-      // HAL_Delay(100);
-      if(BUF_COUNTER == 0){
-        matrix.SetFrameBufferSend();
-      }
-			//SerialPrint("time:", 6);
-			//char snum[10] = {0xAA, };
-			//itoa((current_time2 - current_time), snum, sizeof(snum));
-			//SerialPrint(snum, sizeof(snum));
-		}
+		// if( matrix.GetFrameBufferPtr(RGB_BUF) == true )
+		// {
+    //   FrameBufferLen = matrix.GetFrameBufferLen();
+		// 	HAL_UART_Transmit(&huart1, RGB_BUF, FrameBufferLen, 1000);
+    //   while (RGB_Show());
+    //   // HAL_Delay(120);
+    //   while(BUF_COUNTER != 0){HAL_Delay(1);}
+    //   if(BUF_COUNTER == 0){
+    //     matrix.SetFrameBufferSend();
+    //   }
+		// 	//SerialPrint("time:", 6);
+		// 	//char snum[10] = {0xAA, };
+		// 	//itoa((current_time2 - current_time), snum, sizeof(snum));
+		// 	//SerialPrint(snum, sizeof(snum));
+		// }
+
+    // uint32_t current_time3;
+    // uint32_t current_time4;
+    if(matrix.IsBufferReady() == true){
+      matrix.SetFrameDrawStart();
+      // current_time3 = HAL_GetTick();
+      RGB_Show();
+			SerialPrint("time:", 6);
+			char snum[10] = {0xAA, };
+			itoa((current_time2 - current_time), snum, sizeof(snum));
+			SerialPrint(snum, sizeof(snum));
+    }
+
+    if(BUF_COUNTER == 0){
+      // current_time4 = HAL_GetTick();
+      matrix.SetFrameDrawEnd();
+      // volatile uint32_t current_ = current_time4 - current_time3;
+    }
+
 #endif
 		
 		if(readCAN != 0){
@@ -666,7 +688,7 @@ int main(void)
 			if(RxData[6] == 0x32){
         LedGreen_OFF;
 				ARGB_FillRGB(0, 0, 0); // Fill all the strip with Red
-				while (!RGB_Show());
+				// while (!RGB_Show());
 				fileName[3] = 0;		// чтобы не читал файл
 			}
 
@@ -858,8 +880,8 @@ static void MX_SPI2_Init(void)
   hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

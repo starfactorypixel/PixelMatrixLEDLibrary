@@ -95,7 +95,7 @@ public:
 
 		// cumulative brightness correction
 		uint8_t *buffer = (uint8_t *)_frame_buff;
-		uint16_t frame_buff_idx = GetFrameBufferLen();
+		uint16_t frame_buff_idx = sizeof(_frame_buff);
 		while (frame_buff_idx != 0)
 		{
 			--frame_buff_idx;
@@ -106,46 +106,62 @@ public:
 
 		return;
 	}
-
+	
 	/*
-		Возвращает указатель на кадровый буфер, если он готов.
+		Возвращает указатель на кадровый буфер и его размер.
 			uint8_t *&buffer - Указатель на буфер;
-			return - true если буфер готов, false если нет.
+			uint16_t &length - Длина массиа.
 	*/
-	bool GetFrameBufferPtr(uint8_t *&buffer)
+	void GetFrameBuffer(uint8_t *&buffer, uint16_t &length)
 	{
-		if (_frame_buff_ready == true)
+		buffer = (uint8_t *)_frame_buff;
+		length = sizeof(_frame_buff);
+
+		return;
+	}
+	
+	/*
+		Возвращает true если кадровый буфер готов для вывода.
+	*/
+	bool IsBufferReady()
+	{
+		bool result = false;
+		
+		if(_frame_buff_ready == true && _frame_is_draw == false)
 		{
-			buffer = (uint8_t *)_frame_buff;
+			result = true;
 		}
 		
-		return _frame_buff_ready;
+		return result;
 	}
-
+	
 	/*
-		Возвращает длину кадрового буфера в байтах.
+		Вызывается при инициализации передачи данных из буфера.
 	*/
-	uint16_t GetFrameBufferLen()
+	void SetFrameDrawStart()
 	{
-		return sizeof(_frame_buff);
+		_frame_is_draw = true;
+
+		return;
 	}
 
 	/*
 		Вызывается при завершении передачи данных из буфера.
 	*/
-	void SetFrameBufferSend()
+	void SetFrameDrawEnd()
 	{
 		_ClearBuffer();
 
 		return;
 	}
-
+	
 private:
 	void _ClearBuffer()
 	{
 		memset(_frame_buff, 0x00, sizeof(_frame_buff));
 		
 		_frame_buff_ready = false;
+		_frame_is_draw = false;
 		
 		return;
 	}
@@ -170,6 +186,7 @@ private:
 	
 	color_t _frame_buff[(_width * _height)];
 	bool _frame_buff_ready;
+	bool _frame_is_draw = false;
 	
 	uint8_t _brightness;
 	

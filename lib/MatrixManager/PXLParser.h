@@ -67,8 +67,6 @@ public:
 
 	error_t OpenFile(const char *filename)
 	{
-		bool result = false;
-
 		strncpy(_filename, filename, _filename_length);
 		
 		_reader.Open(_filename);
