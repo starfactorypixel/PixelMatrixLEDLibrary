@@ -20,7 +20,7 @@
 
 #define NUM_PIXELS 2048 ///< Pixel quantity 2048 
 
-#define USE_GAMMA_CORRECTION 1 ///< Gamma-correction should fix red&green, try for yourself
+// #define USE_GAMMA_CORRECTION 1 ///< Gamma-correction should fix red&green, try for yourself
 
 #define TIM_NUM	   2  ///< Timer number
 #define TIM_CH	   TIM_CHANNEL_1  ///< Timer's PWM channel
@@ -50,6 +50,10 @@ void ARGB_Clear(void);  // Clear strip
 void ARGB_SetBrightness(u8_t br); // Set global brightness
 void ARGB_SetRGB(u16_t i, u8_t r, u8_t g, u8_t b);  // Set single LED by RGB
 void ARGB_FillRGB(u8_t r, u8_t g, u8_t b); // Fill all strip with RGB color
+
+void RGB_SetRGB(u16_t i, u8_t r, u8_t g, u8_t b,uint8_t *&buff);  // Set single LED by RGB
+void RGB_FillRGB(u8_t r, u8_t g, u8_t b,uint8_t *&buff);
+void RGB_Clear(uint8_t *&buff);
 
 ARGB_STATE ARGB_Ready(void); // Get DMA Ready state
 ARGB_STATE ARGB_Show(void); // Push data to the strip

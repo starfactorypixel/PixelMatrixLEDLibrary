@@ -1,9 +1,12 @@
 
 #include "RGB.h"  // include header file
 #include "math.h"
-
+#include "main.h"
 
 #define RGB_debag
+
+ 
+
 
 /// Timer handler
 #if TIM_NUM == 1
@@ -50,8 +53,10 @@ volatile u8_t PWM_LO;    ///< PWM Code LO Log.1 period
 #define PWM_BUF_LEN (3 * 8 * 4)    ///< Pack len * 8 bit * 4 LEDs	 
 
 
+    uint8_t *RGB_BUF;
+// u8_t *RGB_BUF = (u8_t*)RGB_buf;
 /// Static LED buffer
- u8_t RGB_BUF[NUM_BYTES] = {0,};
+//  u8_t RGB_BUF[NUM_BYTES] = {0,};
 /// Timer PWM value buffer
 volatile dma_siz PWM_BUF[PWM_BUF_LEN] = {0,};
 /// PWM buffer iterator
@@ -75,9 +80,6 @@ uint16_t intVal = 125;
 	return  (inVal * intVal) >> 8;
 //	return  inVal;
 }
-
-
-
 
 
 
@@ -215,6 +217,81 @@ static inline u8_t scale8(u8_t x, u8_t scale) {
 
 
 //-------------------------------------------------------------------------- modifed
+
+/**
+ * @brief Fill ALL LEDs with (0,0,0)
+ * @param none
+ * @note Update strip after that
+ */
+void RGB_Clear(uint8_t *&buff) {
+    RGB_FillRGB(0, 0, 0, buff);
+}
+
+/**
+ * @brief Fill ALL LEDs with RGB color
+ * @param[in] r Red component   [0..255]
+ * @param[in] g Green component [0..255]
+ * @param[in] b Blue component  [0..255]
+ */
+void RGB_FillRGB(u8_t r, u8_t g, u8_t b,uint8_t *&buff) {
+    for (volatile u16_t i = 0; i < NUM_PIXELS; i++)
+        RGB_SetRGB(i, r, g, b, buff);
+}
+
+/**
+ * @brief Set LED with RGB color by index
+ * @param[in] i LED position
+ * @param[in] r Red component   [0..255]
+ * @param[in] g Green component [0..255]
+ * @param[in] b Blue component  [0..255]
+ */
+void RGB_SetRGB(u16_t i, u8_t r, u8_t g, u8_t b, uint8_t *&buff) {
+    u8_t *rbuff = (u8_t*)buff;
+    u8_t subp[3];
+    // overflow protection
+    if (i >= NUM_PIXELS) {
+        u16_t _i = i / NUM_PIXELS;
+        i -= _i * NUM_PIXELS;
+    }
+    // set brightness
+    // r /= 256 / ((u16_t) ARGB_BR + 1);
+    // g /= 256 / ((u16_t) ARGB_BR + 1);
+    // b /= 256 / ((u16_t) ARGB_BR + 1);
+#if USE_GAMMA_CORRECTION
+    g = scale8(g, 0xB0);
+    b = scale8(b, 0xF0);
+#endif
+    // Subpixel chain order
+#if defined(SK6812) || defined(WS2811F) || defined(WS2811S)
+    subp[0] = r;
+    subp[1] = g;
+    subp[2] = b;
+#else
+    subp[0] = g;
+    subp[1] = r;
+    subp[2] = b;
+#endif
+    // RGB or RGBW
+#ifdef SK6812
+    rbuff[4 * i] = subp1;     // subpixel 1
+    rbuff[4 * i + 1] = subp2; // subpixel 2
+    rbuff[4 * i + 2] = subp3; // subpixel 3
+#else
+    // rbuff[3 * i] = subp1;     // subpixel 1
+    // rbuff[3 * i + 1] = subp2; // subpixel 2
+    // rbuff[3 * i + 2] = subp3; // subpixel 3
+
+    // *(rbuff + (3 * i)) = subp1;     // subpixel 1
+    // *(rbuff + (3 * i + 1)) = subp2; // subpixel 2
+    // *(rbuff + (3 * i + 2)) = subp3; // subpixel 3
+
+uint8_t *ptr {&rbuff[3 * i]};    // адрес третьего элемента
+    ptr = (uint8_t *)subp;     // subpixel
+#endif
+}
+
+
+
 /**
  * @brief Get current DMA status
  * @param none
@@ -230,6 +307,7 @@ ARGB_STATE RGB_Ready(void) {
  * @return #ARGB_STATE enum
  */
 ARGB_STATE RGB_Show(void) {
+
     ARGB_LOC_ST = ARGB_BUSY;
     if (BUF_COUNTER != 0 || DMA_HANDLE.State != HAL_DMA_STATE_READY) {
         return ARGB_BUSY;

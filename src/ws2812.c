@@ -25,8 +25,8 @@ static void TIM_DMAPulseHalfCplt(DMA_HandleTypeDef *hdma);
 //volatile ARGB_STATE ARGB_LOC_ST; ///< Buffer send status
 
 #define ARRAY_LEN (3 * 8 * 4)    ///< Pack len * 8 bit * 4 LEDs	
-volatile uint8_t PWM_HI = 0x2B;    ///< PWM Code HI Log.1 period
-volatile uint8_t PWM_LO = 0x15;    ///< PWM Code LO Log.1 period
+volatile uint8_t PWM_H = 0x2B;    ///< PWM Code HI Log.1 period
+volatile uint8_t PWM_L = 0x15;    ///< PWM Code LO Log.1 period
 //----------------------------------------------------------------------------
 uint16_t BUF_DMA [ARRAY_LEN] = {0};
 uint8_t rgb_temp[12][3];
@@ -57,16 +57,16 @@ void ws2812_init(void)
     TIM_HANDLE.Instance->ARR = (uint16_t) (APBfq - 1);   // set timer prescaler
     TIM_HANDLE.Instance->EGR = 1;                        // update timer registers
 #if defined(WS2811F) || defined(WS2811S)
-    PWM_HI = (u8_t) (APBfq * 0.48) - 1;     // Log.1 - 48% - 0.60us/1.2us
-    PWM_LO = (u8_t) (APBfq * 0.20) - 1;     // Log.0 - 20% - 0.25us/0.5us
+    PWM_H = (u8_t) (APBfq * 0.48) - 1;     // Log.1 - 48% - 0.60us/1.2us
+    PWM_L = (u8_t) (APBfq * 0.20) - 1;     // Log.0 - 20% - 0.25us/0.5us
 #endif
 #ifdef WS2812
-    PWM_HI = (u8_t) (APBfq * 0.56) - 1;     // Log.1 - 56% - 0.70us
-    PWM_LO = (u8_t) (APBfq * 0.28) - 1;     // Log.0 - 28% - 0.35us
+    PWM_H = (u8_t) (APBfq * 0.56) - 1;     // Log.1 - 56% - 0.70us
+    PWM_L = (u8_t) (APBfq * 0.28) - 1;     // Log.0 - 28% - 0.35us
 #endif
 #ifdef SK6812
-    PWM_HI = (u8_t) (APBfq * 0.48) - 1;     // Log.1 - 48% - 0.60us
-    PWM_LO = (u8_t) (APBfq * 0.24) - 1;     // Log.0 - 24% - 0.30us
+    PWM_H = (u8_t) (APBfq * 0.48) - 1;     // Log.1 - 48% - 0.60us
+    PWM_L = (u8_t) (APBfq * 0.24) - 1;     // Log.0 - 24% - 0.30us
 #endif
 
     TIM_CCxChannelCmd(TIM_HANDLE.Instance, TIM_CH, TIM_CCx_ENABLE); // Enable GPIO to IDLE state

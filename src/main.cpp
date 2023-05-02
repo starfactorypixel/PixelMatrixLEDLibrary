@@ -27,7 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-//#include "RGB.h"
+#include "RGB.h"
 #include "sd.h"
 #include <MatrixLed.h>
 #include <CANLibrary.h>
@@ -81,6 +81,7 @@
 	#define DELAY_VAL 100
 
 
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -103,6 +104,9 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+
+// extern u8_t RGB_BUF[];
+
 // For SD
 
 	uint16_t cntBytesStat =0;
@@ -141,9 +145,9 @@ UART_HandleTypeDef huart1;
 #endif	
 
 // For RGB
-
+// uint8_t *buffer;
+extern uint8_t *RGB_BUF;
 extern u16_t BUF_COUNTER;
-
 
 //	extern uint16_t BUF_DMA [ARRAY_LEN];
 //	extern uint8_t PWM_BUF[1028] = {0,};
@@ -155,6 +159,7 @@ extern u16_t BUF_COUNTER;
 	uint32_t TxMailbox = 0;
 	uint8_t trans_str[30];
 
+uint8_t TxOut[16] = {0,};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -186,6 +191,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     {  
 			if(RxData[0] == 0x44){
 				readCAN = 1;
+        // LedGreen_ON;
 			}
     }
 }
@@ -306,6 +312,62 @@ FRESULT ReadFileOUT(void){
 	
   return FR_OK;
 }
+
+FRESULT ReadFilePXL(void){
+  uint16_t i=0, i1=0, it=0;
+  uint32_t ind=0;
+  uint32_t f_size = MyFile.fsize;
+	cntBytesStat = 0;		// общее количество прочитанных байт (глобальная переменная)
+	uint16_t cntBytesFrame = 0;		// 
+	uint16_t k = 0;
+	
+  ind=0;
+  do
+  {
+    if(f_size<512)
+    {
+      i1=f_size;
+    }
+    else
+    {
+      i1=512;
+    }
+    f_size-=i1;
+    f_lseek(&MyFile,ind);
+    f_read(&MyFile,sect,i1,(UINT *)&bytesread);		//( , Указатель на буфер данных, кол-во байт для чтения, Указатель на кол-во прочитанных байтов) чтение по 512 байт
+
+		// переносим считанные байты из файла в буфер 
+		
+		if(cntBytesStat == 0){				// первый сектор с инфой 1байт
+			for(i=1;i<bytesread;i+=3){
+				RGB_SetRGB(k, sect[i+2], sect[i+1], sect[i],(u8_t *)&buffer); // Set LED № with R, G, B
+				k++;
+				cntBytesStat+=3;
+				cntBytesFrame+=3;
+			}
+		}
+		else{											// следующие сектора  с чистыми данными 
+			for(it=0;it<bytesread;it+=3){
+				RGB_SetRGB(k, sect[it+2], sect[it+1], sect[it],(u8_t *)&buffer); // Set LED № with R, G, B
+				k++;
+				cntBytesStat+=3;
+				cntBytesFrame+=3;
+				// if read frame
+				if(cntBytesFrame >= 6143){
+					cntBytesFrame = 0;
+					k = 0;
+					it ++;
+					while (!RGB_Show());
+				}
+				
+			}
+		}
+    ind+=i1;
+  }
+  while(f_size>0);
+	
+  return FR_OK;
+}
 #endif	
 
 void InitFlash(void){
@@ -315,7 +377,7 @@ void InitFlash(void){
 	if(f_mount(&SDFatFs,"",0)!=FR_OK)
 	{
 //		Error_Handler();
-		HAL_UART_Transmit(&huart1,(uint8_t*)"mount error",12,0x1000);
+		// HAL_UART_Transmit(&huart1,(uint8_t*)"mount error",12,0x1000);
 	}
 	else
 	{
@@ -331,11 +393,11 @@ void InitFlash(void){
 				{
 					fn = fileInfo.lfname;
 					if(strlen(fn)) {
-						HAL_UART_Transmit(&huart1,(uint8_t*)fn,strlen(fn),0x1000);
+						// HAL_UART_Transmit(&huart1,(uint8_t*)fn,strlen(fn),0x1000);
 						
 					}
 					else {
-						HAL_UART_Transmit(&huart1,(uint8_t*)fileInfo.fname,strlen((char*)fileInfo.fname),0x1000);
+						// HAL_UART_Transmit(&huart1,(uint8_t*)fileInfo.fname,strlen((char*)fileInfo.fname),0x1000);
 						
 //						BMPtoBIN();
 //						PtoBIN();
@@ -343,11 +405,11 @@ void InitFlash(void){
 					}
 					if(fileInfo.fattrib&AM_DIR)
 					{
-						HAL_UART_Transmit(&huart1,(uint8_t*)"  [DIR]",7,0x1000);
+						// HAL_UART_Transmit(&huart1,(uint8_t*)"  [DIR]",7,0x1000);
 					}					
 				}
 				else break;
-				HAL_UART_Transmit(&huart1,(uint8_t*)"\r\n",2,0x1000);
+				// HAL_UART_Transmit(&huart1,(uint8_t*)"\r\n",2,0x1000);
 			}
 			f_closedir(&dir);
 		}
@@ -359,7 +421,16 @@ void SerialPrint(const char *str, uint16_t len)
 {
 	HAL_UART_Transmit(&huart1, (uint8_t*)str, len, 1000);
 }
+
+#ifdef MATRIX_LIB
+  MatrixLed<5, 128, 16> matrix(200);
+  
+  volatile uint32_t current_time = 0;
+#endif
+
 /* USER CODE END 0 */
+
+
 
 /**
   * @brief  The application entry point.
@@ -368,11 +439,7 @@ void SerialPrint(const char *str, uint16_t len)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-#ifdef MATRIX_LIB
-  MatrixLed<5, 128, 16> matrix(200);
-  uint8_t *buffer;
-  volatile uint32_t current_time = 0;
-#endif
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -402,6 +469,7 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+
 
 	HAL_TIM_Base_Start_IT(&htim1);
 	
@@ -466,8 +534,52 @@ int main(void)
 	TxData[6] = 0x33;
 	TxData[7] = 0x00;
 	
+	TxOut[0] = 0;
+	TxOut[1] = 50;
+	TxOut[2] = 0;
+	TxOut[3] = 0;
+	TxOut[4] = 50;
+	TxOut[5] = 0;
+	TxOut[6] = 0;
+	TxOut[7] = 50;
+  TxOut[8] = 0;
+  TxOut[9] = 0;
+	TxOut[10] = 50;
+	TxOut[11] = 0;
+	TxOut[12] = 0;
+	TxOut[13] = 50;
+	TxOut[14] = 0;
+	TxOut[15] = 0;
+	TxOut[16] = 50;
+  TxOut[17] = 0;
+
+  ARGB_Init();  // Initialization
+  ARGB_SetBrightness(50);  // Set global brightness to 30%
+  // RGB_FillRGB(0, 50, 0, RGB_BUF); // Fill all the strip with Red
+  RGB_BUF = (uint8_t *)TxOut;
+
+  // RGB_BUF[2] = 0;
+
+// uint8_t ptr1 = *(RGB_BUF);   
+// ptr1 = 0;
+
+// uint8_t ptr2= *(RGB_BUF+1);   
+// ptr2 = 0;
+
+// uint8_t ptr3= *(RGB_BUF+2);   
+// ptr3 = 0;
+
+
+//  *(RGB_BUF + 3) = *(TxData + 1);
+// *(RGB_BUF + 3) = (uint8_t *)TxData;
+
+ 
+  // RGB_BUF[2] = 0;
+  // // RGB_Clear(); // Clear stirp
+  while (RGB_Show() != ARGB_OK); // Update - Option 1
+  HAL_Delay(1000);
+
 #ifndef MATRIX_LIB
-	
   #ifdef ARGB_LIB
     ARGB_Init();  // Initialization
     ARGB_SetBrightness(50);  // Set global brightness to 30%
@@ -481,7 +593,9 @@ int main(void)
 
 	InitFlash();
 		
+
 #ifdef MATRIX_LIB
+  matrix.SetBrightness(20);
   matrix.RegLayer("f1.pxl", 1);
   matrix.RegLayer("f2.pxl", 2);
   matrix.RegLayer("f3.pxl", 0);
@@ -491,10 +605,13 @@ int main(void)
   matrix.ShowLayer(2);
 #endif
 
-HAL_InitTick(0);
+// HAL_InitTick(0);
+
 
 		uint8_t fnm = 1;
   /* USER CODE END 2 */
+
+
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -512,13 +629,15 @@ HAL_InitTick(0);
 		uint32_t current_time2 = HAL_GetTick();
 
 
-		if( matrix.GetFrameBufferPtr(buffer) == true )
+		if( matrix.GetFrameBufferPtr(RGB_BUF) == true )
 		{
-      // FrameBufferLen = matrix.GetFrameBufferLen();
-			HAL_UART_Transmit(&huart1, buffer, matrix.GetFrameBufferLen(), 1000);
-			matrix.SetFrameBufferSend();
-
-
+      FrameBufferLen = matrix.GetFrameBufferLen();
+			HAL_UART_Transmit(&huart1, RGB_BUF, FrameBufferLen, 1000);
+      while (RGB_Show());
+      // HAL_Delay(100);
+      if(BUF_COUNTER == 0){
+        matrix.SetFrameBufferSend();
+      }
 			//SerialPrint("time:", 6);
 			//char snum[10] = {0xAA, };
 			//itoa((current_time2 - current_time), snum, sizeof(snum));
@@ -527,7 +646,6 @@ HAL_InitTick(0);
 #endif
 		
 		if(readCAN != 0){
-				
 			if(RxData[6] == 0x31){
         LedGreen_ON;
 				fnm ++;
@@ -555,7 +673,7 @@ HAL_InitTick(0);
  #ifndef MATRIX_LIB
 			uint8_t resultF = f_open(&MyFile, (char*)fileName, FA_READ);	//"123.txt"
 			if(resultF == FR_OK){
-				ReadFileOUT();
+				ReadFilePXL();
 				f_close(&MyFile);
 			}
  #endif
@@ -741,7 +859,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -877,7 +995,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 500000;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
