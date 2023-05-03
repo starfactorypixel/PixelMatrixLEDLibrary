@@ -138,7 +138,7 @@ public:
 		// сохраняем смещение в файле как текущий кадр
 		_file_offset_current_frame = _file_offset;
 
-		uint32_t frame_bytes_left; // Расчётное кол-во байт кадра.
+		uint32_t frame_bytes_left = 0; // Расчётное кол-во байт кадра.
 
 		uint16_t frame_pixels;
 		uint16_t pixel_skip = 0;
