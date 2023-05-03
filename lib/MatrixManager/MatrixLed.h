@@ -74,7 +74,7 @@ public:
 
 	void Processing(uint32_t time)
 	{
-		if (time - _last_screen_time <= _fps)
+		if (time - _last_screen_time <= _fps || _frame_is_draw == true)
 			return;
 
 		_last_screen_time = time;
