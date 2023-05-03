@@ -805,12 +805,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
-  // set CAN data structure to zero
-  memset(&light_ecu_can_data, 0, sizeof(light_ecu_can_data));
-	// init CANManager
-  init_can_manager(can_manager, light_ecu_can_data);
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -954,6 +948,11 @@ int main(void)
   matrix.GetFrameBuffer(RGB_BUF, lenB);
 #endif
 
+  // set CAN data structure to zero
+  memset(&light_ecu_can_data, 0, sizeof(light_ecu_can_data));
+	// init CANManager
+  init_can_manager(can_manager, light_ecu_can_data);
+
 		uint8_t fnm = 1;
   /* USER CODE END 2 */
 
@@ -978,13 +977,12 @@ int main(void)
 
 #ifdef MATRIX_LIB
 		matrix.Processing(current_time);
-		uint32_t current_time2 = HAL_GetTick();
 
     if(matrix.IsBufferReady() == true){
       matrix.SetFrameDrawStart();
       RGB_Show();
       // use LOG() instead of SerialPrint() like this:
-      LOG("time: %d", (current_time2 - current_time));
+      LOG("time: %d", (HAL_GetTick() - current_time));
     }
 
     if(BUF_COUNTER == 0){
