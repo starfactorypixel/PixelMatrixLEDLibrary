@@ -144,7 +144,15 @@ public:
 
 		return;
 	}
+	
+	/*
 
+	*/
+	bool GetFrameIsDraw()
+	{
+		return _frame_is_draw;
+	}
+	
 	/*
 		Вызывается при завершении передачи данных из буфера.
 	*/
