@@ -74,7 +74,7 @@ public:
 
 	void Processing(uint32_t time)
 	{
-		if (time - _last_screen_time <= _fps)
+		if (time - _last_screen_time <= _fps || _frame_is_draw == true)
 			return;
 
 		_last_screen_time = time;
@@ -144,7 +144,15 @@ public:
 
 		return;
 	}
+	
+	/*
 
+	*/
+	bool GetFrameIsDraw()
+	{
+		return _frame_is_draw;
+	}
+	
 	/*
 		Вызывается при завершении передачи данных из буфера.
 	*/
@@ -188,8 +196,9 @@ private:
 	bool _frame_buff_ready;
 	bool _frame_is_draw = false;
 	
+	uint16_t _fps;
 	uint8_t _brightness;
 	
 	uint32_t _last_screen_time = 0;
-	uint16_t _fps;
+	
 };

@@ -42,8 +42,6 @@ class PXLParser
 
 	static const uint8_t _file_version = 1;
 	
-	static const uint8_t _filename_length = 13; // Формат 8.3.
-	
 	static const uint8_t _file_header_size_bytes = 3 + sizeof(header_file_t);
 	static const uint8_t _frame_header_size_bytes = sizeof(header_frame_t);
 	static const uint16_t _frame_chank_size_bytes = 504;
@@ -61,22 +59,27 @@ public:
 		ERROR_VERSION,
 		ERROR_SIZE,
 		ERROR_FORMAT,
-		ERROR_NOFRAMES
+		ERROR_NOFRAMES,
+		ERROR_OPEN_FILE
 	};
 
 
 	error_t OpenFile(const char *filename)
 	{
-		strncpy(_filename, filename, _filename_length);
-		
-		_reader.Open(_filename);
-		if (_reader.Read(_filename, _file_offset, _file_header_size_bytes) == _file_header_size_bytes)
+		if( _reader.Open(filename) == 0 )
 		{
-			_ParseFileHeader(_reader.GetBufferPtr());
-
-			ReInit();
+			if( _reader.Read(_file_offset, _file_header_size_bytes) == _file_header_size_bytes )
+			{
+				_ParseFileHeader( _reader.GetBufferPtr() );
+				
+				ReInit();
+			}
 		}
-
+		else
+		{
+			_SetError(ERROR_OPEN_FILE);
+		}
+		
 		return _error;
 	}
 
@@ -138,7 +141,7 @@ public:
 		// сохраняем смещение в файле как текущий кадр
 		_file_offset_current_frame = _file_offset;
 
-		uint32_t frame_bytes_left; // Расчётное кол-во байт кадра.
+		uint32_t frame_bytes_left = 0; // Расчётное кол-во байт кадра.
 
 		uint16_t frame_pixels;
 		uint16_t pixel_skip = 0;
@@ -150,7 +153,7 @@ public:
 
 		// читаем из файла данные, начиная со смещения _file_offset
 		// количество данных не более _frame_chank_size_bytes + _frame_header_size_bytes
-		uint16_t read = _reader.Read(_filename, _file_offset, bytes_need);
+		uint16_t read = _reader.Read(_file_offset, bytes_need);
 
 		// не прочитали, уходим
 		if (read == 0)
@@ -198,7 +201,7 @@ public:
 				bytes_need = (frame_bytes_left > _frame_chank_size_bytes) ? _frame_chank_size_bytes : frame_bytes_left;
 
 				// читаем очередную порцию данных
-				read = _reader.Read(_filename, _file_offset, bytes_need);
+				read = _reader.Read(_file_offset, bytes_need);
 				// не прочитали, уходим
 				if (read == 0)
 					return false;
@@ -289,8 +292,6 @@ private:
 	}
 
 	ReaderWrapper<_reader_buffer_size_bytes> _reader;
-
-	char _filename[_filename_length];
 
 	uint32_t _file_offset;				 // Смещение чтения файла, байт.
 	uint32_t _file_offset_last_frame;	 // Смещение от начала файла до последнего кадра (для отрисовки последнего кадра в не бесконечной анимации).

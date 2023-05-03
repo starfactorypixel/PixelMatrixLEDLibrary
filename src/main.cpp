@@ -27,9 +27,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "RGB.h"
+//#include "RGB.h"
 #include "sd.h"
-#include <MatrixLed.h>
+#include <SerialUtils.h>
+//#include <MatrixLed.h>
+#include <MatrixLogic.h>
 #include <CANLibrary.h>
 /* USER CODE END Includes */
 
@@ -147,7 +149,7 @@ UART_HandleTypeDef huart1;
 // For RGB
 // uint8_t *buffer;
 extern uint8_t *RGB_BUF;
-extern u16_t BUF_COUNTER;
+//extern u16_t BUF_COUNTER;
 
 //	extern uint16_t BUF_DMA [ARRAY_LEN];
 //	extern uint8_t PWM_BUF[1028] = {0,};
@@ -159,7 +161,7 @@ extern u16_t BUF_COUNTER;
 	uint32_t TxMailbox = 0;
 	uint8_t trans_str[30];
 
-uint8_t TxOut[16] = {0,};
+uint8_t TxOut[18] = {0,};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -415,18 +417,13 @@ void InitFlash(void){
 		}
 		
 	}
-}	
-
-void SerialPrint(const char *str, uint16_t len)
-{
-	HAL_UART_Transmit(&huart1, (uint8_t*)str, len, 1000);
 }
 
 #ifdef MATRIX_LIB
-  MatrixLed<5, 128, 16> matrix(200);
-  
-  volatile uint32_t current_time = 0;
+
 #endif
+
+uint32_t current_time = 0;
 
 /* USER CODE END 0 */
 
@@ -553,8 +550,8 @@ int main(void)
 	TxOut[16] = 50;
   TxOut[17] = 0;
 
-  ARGB_Init();  // Initialization
-  ARGB_SetBrightness(50);  // Set global brightness to 30%
+  //ARGB_Init();  // Initialization
+  //ARGB_SetBrightness(50);  // Set global brightness to 30%
   // RGB_FillRGB(0, 50, 0, RGB_BUF); // Fill all the strip with Red
   // RGB_BUF = (uint8_t *)TxOut;
 
@@ -595,16 +592,7 @@ int main(void)
 		
 
 #ifdef MATRIX_LIB
-  matrix.SetBrightness(20);
-  matrix.RegLayer("f1.pxl", 1);
-  matrix.RegLayer("f2.pxl", 2);
-  matrix.RegLayer("f3.pxl", 0);
-
-  matrix.ShowLayer(0);
-  matrix.ShowLayer(1);
-  matrix.ShowLayer(2);
-  uint16_t lenB;
-  matrix.GetFrameBuffer(RGB_BUF, lenB);
+	Matrix::Setup();
 #endif
 
 // HAL_InitTick(0);
@@ -624,12 +612,17 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	current_time = HAL_GetTick();
 
 #ifdef MATRIX_LIB
-		current_time = HAL_GetTick();
+
+	Matrix::Loop(current_time);
+		
+
+		/*
 		matrix.Processing(current_time);
 		uint32_t current_time2 = HAL_GetTick();
-
+		/
 
 		// if( matrix.GetFrameBufferPtr(RGB_BUF) == true )
 		// {
@@ -649,6 +642,7 @@ int main(void)
 
     // uint32_t current_time3;
     // uint32_t current_time4;
+	
     if(matrix.IsBufferReady() == true){
       matrix.SetFrameDrawStart();
       // current_time3 = HAL_GetTick();
@@ -664,6 +658,7 @@ int main(void)
       matrix.SetFrameDrawEnd();
       // volatile uint32_t current_ = current_time4 - current_time3;
     }
+	*/
 
 #endif
 		
@@ -687,7 +682,7 @@ int main(void)
 			}
 			if(RxData[6] == 0x32){
         LedGreen_OFF;
-				ARGB_FillRGB(0, 0, 0); // Fill all the strip with Red
+				//ARGB_FillRGB(0, 0, 0); // Fill all the strip with Red
 				// while (!RGB_Show());
 				fileName[3] = 0;		// чтобы не читал файл
 			}
