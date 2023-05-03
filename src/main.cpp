@@ -1002,7 +1002,7 @@ int main(void)
       matrix.SetFrameDrawStart();
       RGB_Show();
       // use LOG() instead of SerialPrint() like this:
-      LOG("time: %d", (current_time2 - current_time));
+      LOG("time: %d", (HAL_GetTick() - current_time));
     }
 
     if(BUF_COUNTER == 0){
