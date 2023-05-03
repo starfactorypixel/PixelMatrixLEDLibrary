@@ -31,6 +31,7 @@
 #include "sd.h"
 #include <MatrixLed.h>
 #include <CANLibrary.h>
+#include "can_abstarction.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,16 +53,22 @@
 	#define LedYellow_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);			// Вкл
 	#define LedYellow_OFF		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);			// Выкл
 
+  // SideBeam (габариты), layer 2 of the Matrix
 	#define OUT1_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);			// Вкл
 	#define OUT1_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);			// Выкл
-	#define OUT2_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);			// Вкл
+	// BrakeLight (стопы), layer 4 of the Matrix
+  #define OUT2_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);			// Вкл
 	#define OUT2_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);			// Выкл
-	#define OUT3_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);			// Вкл
+	// ReverseLight (задний ход), layer 3 of the Matrix
+  #define OUT3_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);			// Вкл
 	#define OUT3_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);			// Выкл
-	#define OUT4_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);			// Вкл
+	// LeftIndicator (левый поворотник), layer 5 of the Matrix
+  #define OUT4_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);			// Вкл
 	#define OUT4_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);			// Выкл
+	// RightIndicator (правый поворотник), layer 6 of the Matrix
 	#define OUT5_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);			// Вкл
 	#define OUT5_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);			// Выкл
+	// CustomBeam (пользовательский свет), NO Matrix layer!
 	#define OUT6_ON		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);			// Вкл
 	#define OUT6_OFF	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);			// Выкл
 	
@@ -142,7 +149,17 @@ UART_HandleTypeDef huart1;
 	FATFS *fs;
 #ifndef MATRIX_LIB
   FIL MyFile;	
-#endif	
+#endif
+
+// structure for all data fields of CANObject
+rear_light_can_data_t light_ecu_can_data;
+CANManager can_manager(&HAL_GetTick);
+
+#ifdef MATRIX_LIB
+  MatrixLed<5, 128, 16> matrix(200);
+#endif
+// current_time variable is used by CANManager too
+volatile uint32_t current_time = 0;
 
 // For RGB
 // uint8_t *buffer;
@@ -152,14 +169,13 @@ extern u16_t BUF_COUNTER;
 //	extern uint16_t BUF_DMA [ARRAY_LEN];
 //	extern uint8_t PWM_BUF[1028] = {0,};
 // For CAN
-	CAN_TxHeaderTypeDef TxHeader;
-	CAN_RxHeaderTypeDef RxHeader;
-	uint8_t TxData[8] = {0,};
-	uint8_t RxData[8] = {0,};
-	uint32_t TxMailbox = 0;
-	uint8_t trans_str[30];
+//	CAN_TxHeaderTypeDef TxHeader;
+//	CAN_RxHeaderTypeDef RxHeader;
+//	uint8_t TxData[8] = {0,};
+//	uint8_t RxData[8] = {0,};
+//	uint32_t TxMailbox = 0;
 
-uint8_t TxOut[16] = {0,};
+// uint8_t TxOut[16] = {0,};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -179,6 +195,307 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+  // вызывается, если по CAN пришла команда включения/выключения габаритов
+  CAN_function_result_t side_beam_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+  {
+    if (can_frame == nullptr)
+      return CAN_RES_NEXT_ERR;
+    
+    light_ecu_can_data.side_beam.brightness = can_frame->get_data_pointer()[1];
+
+    if (light_ecu_can_data.side_beam.brightness == 0)
+    {
+      OUT1_OFF;
+      matrix.HideLayer(2);
+    }
+    else
+    {
+      OUT1_ON;
+      matrix.ShowLayer(2);
+      // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
+      // matrix.SetBrightness(light_ecu_can_data.side_beam.brightness);
+    }
+
+    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
+    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
+    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
+    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
+    return CAN_RES_NEXT_OK;
+  }
+
+  // вызывается, если по CAN пришла команда включения/выключения стоп-сигналов
+  CAN_function_result_t brake_light_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+  {
+    if (can_frame == nullptr)
+      return CAN_RES_NEXT_ERR;
+    
+    light_ecu_can_data.brake_light.brightness = can_frame->get_data_pointer()[1];
+
+    if (light_ecu_can_data.brake_light.brightness == 0)
+    {
+      OUT2_OFF;
+      matrix.HideLayer(4);
+    }
+    else
+    {
+      OUT2_ON;
+      matrix.ShowLayer(4);
+      // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
+      // matrix.SetBrightness(light_ecu_can_data.brake_light.brightness);
+    }
+
+    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
+    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
+    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
+    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
+    return CAN_RES_NEXT_OK;
+  }
+
+  // вызывается, если по CAN пришла команда включения/выключения заднего хода
+  CAN_function_result_t reverse_light_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+  {
+    if (can_frame == nullptr)
+      return CAN_RES_NEXT_ERR;
+    
+    light_ecu_can_data.reverse_light.brightness = can_frame->get_data_pointer()[1];
+
+    if (light_ecu_can_data.reverse_light.brightness == 0)
+    {
+      OUT3_OFF;
+      matrix.HideLayer(3);
+    }
+    else
+    {
+      OUT3_ON;
+      matrix.ShowLayer(3);
+      // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
+      // matrix.SetBrightness(light_ecu_can_data.reverse_light.brightness);
+    }
+
+    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
+    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
+    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
+    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
+    return CAN_RES_NEXT_OK;
+  }
+
+  // вызывается, если по CAN пришла команда включения/выключения левого поворотника
+  CAN_function_result_t turn_left_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+  {
+    if (can_frame == nullptr)
+      return CAN_RES_NEXT_ERR;
+    
+    light_ecu_can_data.left_indicator.brightness = can_frame->get_data_pointer()[1];
+
+    // TODO: надо же ещё мигать выводами OUTx?
+    if (light_ecu_can_data.left_indicator.brightness == 0)
+    {
+      OUT4_OFF;
+      matrix.HideLayer(5);
+    }
+    else
+    {
+      OUT4_ON;
+      matrix.ShowLayer(5);
+      // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
+      // matrix.SetBrightness(light_ecu_can_data.left_indicator.brightness);
+    }
+
+    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
+    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
+    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
+    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
+    return CAN_RES_NEXT_OK;
+  }
+
+  // вызывается, если по CAN пришла команда включения/выключения правкого поворотника
+  CAN_function_result_t turn_right_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+  {
+    if (can_frame == nullptr)
+      return CAN_RES_NEXT_ERR;
+    
+    light_ecu_can_data.right_indicator.brightness = can_frame->get_data_pointer()[1];
+
+    // TODO: надо же ещё мигать выводами OUTx?
+    if (light_ecu_can_data.right_indicator.brightness == 0)
+    {
+      OUT5_OFF;
+      matrix.HideLayer(6);
+    }
+    else
+    {
+      OUT5_ON;
+      matrix.ShowLayer(6);
+      // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
+      // matrix.SetBrightness(light_ecu_can_data.right_indicator.brightness);
+    }
+
+    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
+    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
+    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
+    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
+    return CAN_RES_NEXT_OK;
+  }
+
+  // вызывается, если по CAN пришла команда включения/выключения аварийного сигнала
+  CAN_function_result_t hazard_beam_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+  {
+    if (can_frame == nullptr)
+      return CAN_RES_NEXT_ERR;
+    
+    light_ecu_can_data.hazard_beam.brightness = can_frame->get_data_pointer()[1];
+
+    // TODO: надо же ещё мигать выводами OUTx?
+    if (light_ecu_can_data.hazard_beam.brightness == 0)
+    {
+      OUT4_OFF;
+      OUT5_OFF;
+      matrix.HideLayer(5);
+      matrix.HideLayer(6);
+    }
+    else
+    {
+      OUT4_ON;
+      OUT5_ON;
+      matrix.ShowLayer(5);
+      matrix.ShowLayer(6);
+      // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
+      // matrix.SetBrightness(light_ecu_can_data.hazard_beam.brightness);
+    }
+
+    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
+    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
+    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
+    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
+    return CAN_RES_NEXT_OK;
+  }
+
+  // вызывается, если по CAN пришла команда включения/выключения пользовательского света
+  CAN_function_result_t custom_beam_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+  {
+    if (can_frame == nullptr)
+      return CAN_RES_NEXT_ERR;
+    
+    light_ecu_can_data.custom_beam.brightness = can_frame->get_data_pointer()[1];
+
+    if (light_ecu_can_data.custom_beam.brightness == 0)
+    {
+      OUT6_OFF;
+    }
+    else
+    {
+      OUT6_ON;
+      // TODO: включение - это любое значение больше 0?
+      // Или жестко 255 будет включение, а 1..254 не будут влиять ни на что?
+    }
+
+    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
+    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
+    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
+    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
+    return CAN_RES_NEXT_OK;
+  }
+
+  // вызывается, если по CAN пришла команда включения/выключения пользовательского изображения на панели
+  CAN_function_result_t custom_image_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+  {
+    if (can_frame == nullptr)
+      return CAN_RES_NEXT_ERR;
+    
+    light_ecu_can_data.custom_image.brightness = can_frame->get_data_pointer()[1];
+
+    // TODO: надо же ещё мигать выводами OUTx?
+    if (light_ecu_can_data.custom_image.brightness == 0)
+    {
+      matrix.HideLayer(1);
+    }
+    else
+    {
+      matrix.ShowLayer(1);
+      // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
+      // matrix.SetBrightness(light_ecu_can_data.custom_image.brightness);
+    }
+
+    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
+    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
+    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
+    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
+    return CAN_RES_NEXT_OK;
+  }
+
+  // CAN Send Raw Function Callback
+  // вызывается при проверке наличия свободного места
+  // возвращает:
+  //    true, если для указанного количества байт есть место
+  //    false, если места нет
+  bool free_space(uint32_t size_needed)
+  {
+    LOG("callback: free_space()");
+
+    // TODO: в качестве заглушки всегда говорим, что места нет
+    // но надо прикрутить функцию из FAT
+    return false;
+  }
+
+  // CAN Send Raw Function Callback
+  // вызывается при создании нового ВРЕМЕННОГО файла для записи
+  // возвращает:
+  //    true, если всё успешно
+  //    false, если не удалось
+  bool open_tmp_file()
+  {
+    LOG("callback: open_tmp_file()");
+
+    // TODO: в качестве заглушки ничего не делаем и возвращаем "не шмогла"
+    // но надо прикрутить функцию из FAT
+    return false;
+  }
+
+  // CAN Send Raw Function Callback
+  // вызывается при записи во временный файл очередного чанка с данными
+  // возвращает:
+  //    true, если всё успешно
+  //    false, если не удалось
+  bool write_chunk(uint8_t chunk_size, uint8_t *chunk_data)
+  {
+    LOG("callback: write_chunk()");
+
+    // TODO: в качестве заглушки ничего не делаем и возвращаем "не шмогла"
+    // но надо прикрутить функцию из FAT
+    return false;
+  }
+
+  // CAN Send Raw Function Callback
+  // вызывается при окончании записи во временный файл
+  // сюда передаётся цифровой код файла, под которым требуется сохранить этот временный файл
+  // возвращает:
+  //    true, если всё успешно
+  //    false, если не удалось
+  bool close_file(uint8_t file_code)
+  {
+    LOG("callback: close_file()");
+
+    // TODO: в качестве заглушки ничего не делаем и возвращаем "не шмогла"
+    // но надо прикрутить функцию из FAT
+    return false;
+  }
+
+  // CAN Send Raw Function Callback
+  // вызывается, если запись файла была прервана
+  // нужно удалить временный файл, очистить память и т.п.
+  // возвращает:
+  //    true, если всё успешно
+  //    false, если не удалось (по факту, вызывающему коду на это уже плевать)
+  bool abort_callback()
+  {
+    LOG("callback: abort_callback()");
+
+    // TODO: в качестве заглушки ничего не делаем и возвращаем "не шмогла"
+    // но надо прикрутить функцию из FAT
+    return false;
+  }
+
 /* 
 	Колбек для приёма данных (для буфера RX_FIFO_0)
 	При приёме любого кадра мы тут же забираем его из почтового ящика с помощью функции HAL_CAN_GetRxMessage(...)
@@ -187,13 +504,23 @@ static void MX_ADC1_Init(void);
 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-    if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
-    {  
-			if(RxData[0] == 0x44){
-				readCAN = 1;
-        // LedGreen_ON;
-			}
+  CAN_RxHeaderTypeDef RxHeader;
+  uint8_t RxData[8] = {0};
+
+  if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
+  {  
+    CANFrame new_frame(RxHeader.StdId, &RxData[0], RxHeader.DLC);
+    can_manager.take_new_rx_frame(new_frame);
+
+    LOG("RX: CAN 0x%04lX", RxHeader.StdId);
+
+    /*
+    if(RxData[0] == 0x44){
+      readCAN = 1;
+      // LedGreen_ON;
     }
+    */
+  }
 }
 
 /* 
@@ -201,22 +528,56 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 */
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 {
-//    uint32_t er = HAL_CAN_GetError(hcan);
-//    sprintf(trans_str,"ER CAN %lu %08lX", er, er);
-//    HAL_UART_Transmit(&huart1, (uint8_t*)trans_str, strlen(trans_str), 100);
+  // uint32_t er = HAL_CAN_GetError(hcan);
+  // LOG("ER CAN %lu %08lX", (unsigned long)er, (unsigned long)er);
 }
 
-void HAL_CAN_Send()
+void HAL_CAN_Send(CANFrame &can_frame)
 {
-		while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0);
+  /*
+    Заполняем структуру отвечающую за отправку кадров
+    StdId — это идентификатор стандартного кадра.
+    ExtId — это идентификатор расширенного кадра. Мы будем отправлять стандартный поэтому сюда пишем 0.
+    RTR =
+        CAN_RTR_DATA    — отправляем кадр с данными (Data Frame)
+        CAN_RTR_REMOTE  — отправляем Remote Frame.
+    IDE =
+        CAN_ID_STD — отправляем стандартный кадр.
+        CAN_ID_EXT — расширенный кадр. В этом случае в StdId нужно будет указать 0,
+                     а в ExtId записать расширенный идентификатор.
+    DLC = 8 — количество полезных байт передаваемых в кадре (от 1 до 8).
+    TransmitGlobalTime — относится к Time Triggered Communication Mode, мы это не используем поэтому пишем 0.
+  */
+  CAN_TxHeaderTypeDef TxHeader;
+  uint8_t TxData[8] = {0};
+  uint32_t TxMailbox = 0;
+  TxHeader.StdId = can_frame.get_id();
+  TxHeader.ExtId = 0;
+  TxHeader.RTR = CAN_RTR_DATA; // CAN_RTR_REMOTE
+  TxHeader.IDE = CAN_ID_STD;   // CAN_ID_EXT
+  TxHeader.DLC = can_frame.get_data_length();
+  TxHeader.TransmitGlobalTime = DISABLE;
 
-		if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
-		{
-//			HAL_UART_Transmit(&huart1, (uint8_t*)"ER SEND\n", 8, 100);
-		}
+  while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0);
+
+  can_frame.copy_frame_data_to(TxData, 8);
+
+  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+  {
+    // LOG("TX ERROR: CAN 0x%04lX", TxHeader.StdId);
+  }
 //		HAL_Delay(500);
 }
 
+void CAN_Send_All_Frames(CANManager &can_manager)
+{
+  CANFrame can_frame;
+  while (can_manager.has_tx_frames_for_transmission())
+  {
+    can_manager.give_tx_frame(can_frame);
+    HAL_CAN_Send(can_frame);
+  }
+}
 
 //========================== for SD Card:
 #ifndef MATRIX_LIB
@@ -417,16 +778,12 @@ void InitFlash(void){
 	}
 }	
 
+/*
 void SerialPrint(const char *str, uint16_t len)
 {
 	HAL_UART_Transmit(&huart1, (uint8_t*)str, len, 1000);
 }
-
-#ifdef MATRIX_LIB
-  MatrixLed<5, 128, 16> matrix(200);
-  
-  volatile uint32_t current_time = 0;
-#endif
+*/
 
 /* USER CODE END 0 */
 
@@ -448,6 +805,11 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
+  // set CAN data structure to zero
+  memset(&light_ecu_can_data, 0, sizeof(light_ecu_can_data));
+	// init CANManager
+  init_can_manager(can_manager, light_ecu_can_data);
 
   /* USER CODE END Init */
 
@@ -500,7 +862,7 @@ int main(void)
 	LedBlue_ON;
 	HAL_Delay(DELAY_VAL);
 	LedBlue_OFF;
-	
+
 		/* 
 		Заполняем структуру отвечающую за отправку кадров
 		StdId — это идентификатор стандартного кадра.
@@ -510,19 +872,23 @@ int main(void)
 		DLC = 8 — количество полезных байт передаваемых в кадре (от 1 до 8).
 		TransmitGlobalTime — относится к Time Triggered Communication Mode, мы это не используем поэтому пишем 0.
 	*/
+  /*
+  // перенесено в функцию отправки
 	TxHeader.StdId = 0x07B0;
 	TxHeader.ExtId = 0;
 	TxHeader.RTR = CAN_RTR_DATA; //CAN_RTR_REMOTE
 	TxHeader.IDE = CAN_ID_STD;   // CAN_ID_EXT
 	TxHeader.DLC = 8;
 	TxHeader.TransmitGlobalTime = DISABLE;
-	
+	*/
 	
 	/* активируем события которые будут вызывать прерывания  */
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE);
 	
 	HAL_CAN_Start(&hcan);
 	
+  /*
+  // перенесено в main() в обработку кнопок
 	TxHeader.StdId = 0x07B0;
 	TxHeader.DLC = 7;
 	TxData[0] = 0x44;
@@ -533,7 +899,10 @@ int main(void)
 	TxData[5] = 0x30;
 	TxData[6] = 0x33;
 	TxData[7] = 0x00;
-	
+  */
+
+  /*
+  // нигде не используется
 	TxOut[0] = 0;
 	TxOut[1] = 50;
 	TxOut[2] = 0;
@@ -552,33 +921,11 @@ int main(void)
 	TxOut[15] = 0;
 	TxOut[16] = 50;
   TxOut[17] = 0;
+  */
 
   ARGB_Init();  // Initialization
   ARGB_SetBrightness(50);  // Set global brightness to 30%
-  // RGB_FillRGB(0, 50, 0, RGB_BUF); // Fill all the strip with Red
-  // RGB_BUF = (uint8_t *)TxOut;
-
-  // RGB_BUF[2] = 0;
-
-// uint8_t ptr1 = *(RGB_BUF);   
-// ptr1 = 0;
-
-// uint8_t ptr2= *(RGB_BUF+1);   
-// ptr2 = 0;
-
-// uint8_t ptr3= *(RGB_BUF+2);   
-// ptr3 = 0;
-
-
-//  *(RGB_BUF + 3) = *(TxData + 1);
-// *(RGB_BUF + 3) = (uint8_t *)TxData;
-
  
-  // RGB_BUF[2] = 0;
-  // // RGB_Clear(); // Clear stirp
-  // while (RGB_Show() != ARGB_OK); // Update - Option 1
-  // HAL_Delay(1000);
-
 #ifndef MATRIX_LIB
   #ifdef ARGB_LIB
     ARGB_Init();  // Initialization
@@ -607,9 +954,6 @@ int main(void)
   matrix.GetFrameBuffer(RGB_BUF, lenB);
 #endif
 
-// HAL_InitTick(0);
-
-
 		uint8_t fnm = 1;
   /* USER CODE END 2 */
 
@@ -617,56 +961,52 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-//	uint16_t cn=1000;
+  uint32_t can_manager_last_tick = HAL_GetTick();
+  CANFrame can_frame;
+  uint8_t can_frame_data[8];
   while (1)
   {
+    // this function is still empty
+    // update_block_can_data(light_ecu_can_data);
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
-#ifdef MATRIX_LIB
+    // current_time variable is used by CANManager too
 		current_time = HAL_GetTick();
+
+#ifdef MATRIX_LIB
 		matrix.Processing(current_time);
 		uint32_t current_time2 = HAL_GetTick();
 
-
-		// if( matrix.GetFrameBufferPtr(RGB_BUF) == true )
-		// {
-    //   FrameBufferLen = matrix.GetFrameBufferLen();
-		// 	HAL_UART_Transmit(&huart1, RGB_BUF, FrameBufferLen, 1000);
-    //   while (RGB_Show());
-    //   // HAL_Delay(120);
-    //   while(BUF_COUNTER != 0){HAL_Delay(1);}
-    //   if(BUF_COUNTER == 0){
-    //     matrix.SetFrameBufferSend();
-    //   }
-		// 	//SerialPrint("time:", 6);
-		// 	//char snum[10] = {0xAA, };
-		// 	//itoa((current_time2 - current_time), snum, sizeof(snum));
-		// 	//SerialPrint(snum, sizeof(snum));
-		// }
-
-    // uint32_t current_time3;
-    // uint32_t current_time4;
     if(matrix.IsBufferReady() == true){
       matrix.SetFrameDrawStart();
-      // current_time3 = HAL_GetTick();
       RGB_Show();
-			SerialPrint("time:", 6);
-			char snum[10] = {0xAA, };
-			itoa((current_time2 - current_time), snum, sizeof(snum));
-			SerialPrint(snum, sizeof(snum));
+      // use LOG() instead of SerialPrint() like this:
+      LOG("time: %d", (current_time2 - current_time));
     }
 
     if(BUF_COUNTER == 0){
-      // current_time4 = HAL_GetTick();
       matrix.SetFrameDrawEnd();
-      // volatile uint32_t current_ = current_time4 - current_time3;
     }
 
 #endif
-		
+
+    // CAN Manager checks data every 300 ms
+    if (current_time - can_manager_last_tick > 300)
+    {
+      // do all stuff and process RX frames
+      can_manager.process();
+
+      // send TX frames if there are any
+      if (can_manager.has_tx_frames_for_transmission())
+        CAN_Send_All_Frames(can_manager);
+
+      can_manager_last_tick = HAL_GetTick();
+    }
+
+    /*
 		if(readCAN != 0){
 			if(RxData[6] == 0x31){
         LedGreen_ON;
@@ -701,17 +1041,32 @@ int main(void)
  #endif
 			readCAN = 0;
 		}
+    */
 		
 		if(Button1 == 0){
-			TxData[6] = 0x31;
-//			HAL_CAN_Send();
+			/*
+      TxData[6] = 0x31;
+      // HAL_CAN_Send();
 			RxData[6] = 0x31;
 			readCAN = 1;
+      */
 		}
 		if(Button2 == 0){
-			TxData[6] = 0x32;
-			HAL_CAN_Send();
-		}
+      can_frame_data[0] = 0x44;
+      can_frame_data[1] = 0x53;
+      can_frame_data[2] = 0x46;
+      can_frame_data[3] = 0x30;
+      can_frame_data[4] = 0x30;
+      can_frame_data[5] = 0x30;
+      can_frame_data[6] = 0x32;
+      can_frame_data[7] = 0x00;
+      can_frame.set_frame(0x07B0, can_frame_data, 8);
+    }
+    if (can_frame.is_initialized())
+    {
+      HAL_CAN_Send(can_frame);
+      can_frame.clear_frame();
+    }
 		
   }
   /* USER CODE END 3 */
