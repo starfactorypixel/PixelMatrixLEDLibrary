@@ -998,30 +998,11 @@ int main(void)
 		uint32_t current_time2 = HAL_GetTick();
 		/
 
-		// if( matrix.GetFrameBufferPtr(RGB_BUF) == true )
-		// {
-    //   FrameBufferLen = matrix.GetFrameBufferLen();
-		// 	HAL_UART_Transmit(&huart1, RGB_BUF, FrameBufferLen, 1000);
-    //   while (RGB_Show());
-    //   // HAL_Delay(120);
-    //   while(BUF_COUNTER != 0){HAL_Delay(1);}
-    //   if(BUF_COUNTER == 0){
-    //     matrix.SetFrameBufferSend();
-    //   }
-		// 	//SerialPrint("time:", 6);
-		// 	//char snum[10] = {0xAA, };
-		// 	//itoa((current_time2 - current_time), snum, sizeof(snum));
-		// 	//SerialPrint(snum, sizeof(snum));
-		// }
-
-    // uint32_t current_time3;
-    // uint32_t current_time4;
-	
     if(matrix.IsBufferReady() == true){
       matrix.SetFrameDrawStart();
       RGB_Show();
       // use LOG() instead of SerialPrint() like this:
-      LOG("time: %d", (HAL_GetTick() - current_time));
+      LOG("time: %d", (current_time2 - current_time));
     }
 
     if(BUF_COUNTER == 0){
