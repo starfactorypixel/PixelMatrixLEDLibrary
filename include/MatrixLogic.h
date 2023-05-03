@@ -376,22 +376,18 @@ inline void Loop(uint32_t current_time)
 		
 		DMADraw();
 		
+		//Serial::Print(frame_buffer_ptr, frame_buffer_len);
 		Serial::Print("LogicTime: ");
 		Serial::Print( (timer2 - timer1) );
 		Serial::Println();
 	}
 	
-	if(frame_buffer_idx == 0)
+	if( matrix.GetFrameIsDraw() == true && frame_buffer_idx == 0 )
 	{
 		matrix.SetFrameDrawEnd();
 	}
 	
 	return;
 }
-
-
-
-
-
 
 }
