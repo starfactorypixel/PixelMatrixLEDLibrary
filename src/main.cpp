@@ -27,9 +27,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "RGB.h"
+//#include "RGB.h"
 #include "sd.h"
-#include <MatrixLed.h>
+#include <SerialUtils.h>
+//#include <MatrixLed.h>
+#include <MatrixLogic.h>
 #include <CANLibrary.h>
 #include "can_abstarction.h"
 /* USER CODE END Includes */
@@ -164,7 +166,7 @@ volatile uint32_t current_time = 0;
 // For RGB
 // uint8_t *buffer;
 extern uint8_t *RGB_BUF;
-extern u16_t BUF_COUNTER;
+//extern u16_t BUF_COUNTER;
 
 //	extern uint16_t BUF_DMA [ARRAY_LEN];
 //	extern uint8_t PWM_BUF[1028] = {0,};
@@ -776,14 +778,13 @@ void InitFlash(void){
 		}
 		
 	}
-}	
-
-/*
-void SerialPrint(const char *str, uint16_t len)
-{
-	HAL_UART_Transmit(&huart1, (uint8_t*)str, len, 1000);
 }
-*/
+
+#ifdef MATRIX_LIB
+
+#endif
+
+uint32_t current_time = 0;
 
 /* USER CODE END 0 */
 
@@ -917,9 +918,32 @@ int main(void)
   TxOut[17] = 0;
   */
 
-  ARGB_Init();  // Initialization
-  ARGB_SetBrightness(50);  // Set global brightness to 30%
+  //ARGB_Init();  // Initialization
+  //ARGB_SetBrightness(50);  // Set global brightness to 30%
+  // RGB_FillRGB(0, 50, 0, RGB_BUF); // Fill all the strip with Red
+  // RGB_BUF = (uint8_t *)TxOut;
+
+  // RGB_BUF[2] = 0;
+
+// uint8_t ptr1 = *(RGB_BUF);   
+// ptr1 = 0;
+
+// uint8_t ptr2= *(RGB_BUF+1);   
+// ptr2 = 0;
+
+// uint8_t ptr3= *(RGB_BUF+2);   
+// ptr3 = 0;
+
+
+//  *(RGB_BUF + 3) = *(TxData + 1);
+// *(RGB_BUF + 3) = (uint8_t *)TxData;
+
  
+  // RGB_BUF[2] = 0;
+  // // RGB_Clear(); // Clear stirp
+  // while (RGB_Show() != ARGB_OK); // Update - Option 1
+  // HAL_Delay(1000);
+
 #ifndef MATRIX_LIB
   #ifdef ARGB_LIB
     ARGB_Init();  // Initialization
@@ -936,16 +960,7 @@ int main(void)
 		
 
 #ifdef MATRIX_LIB
-  matrix.SetBrightness(20);
-  matrix.RegLayer("f1.pxl", 1);
-  matrix.RegLayer("f2.pxl", 2);
-  matrix.RegLayer("f3.pxl", 0);
-
-  matrix.ShowLayer(0);
-  matrix.ShowLayer(1);
-  matrix.ShowLayer(2);
-  uint16_t lenB;
-  matrix.GetFrameBuffer(RGB_BUF, lenB);
+	Matrix::Setup();
 #endif
 
   // set CAN data structure to zero
@@ -971,13 +986,37 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-    // current_time variable is used by CANManager too
-		current_time = HAL_GetTick();
+	current_time = HAL_GetTick();
 
 #ifdef MATRIX_LIB
-		matrix.Processing(current_time);
 
+	Matrix::Loop(current_time);
+		
+
+		/*
+		matrix.Processing(current_time);
+		uint32_t current_time2 = HAL_GetTick();
+		/
+
+		// if( matrix.GetFrameBufferPtr(RGB_BUF) == true )
+		// {
+    //   FrameBufferLen = matrix.GetFrameBufferLen();
+		// 	HAL_UART_Transmit(&huart1, RGB_BUF, FrameBufferLen, 1000);
+    //   while (RGB_Show());
+    //   // HAL_Delay(120);
+    //   while(BUF_COUNTER != 0){HAL_Delay(1);}
+    //   if(BUF_COUNTER == 0){
+    //     matrix.SetFrameBufferSend();
+    //   }
+		// 	//SerialPrint("time:", 6);
+		// 	//char snum[10] = {0xAA, };
+		// 	//itoa((current_time2 - current_time), snum, sizeof(snum));
+		// 	//SerialPrint(snum, sizeof(snum));
+		// }
+
+    // uint32_t current_time3;
+    // uint32_t current_time4;
+	
     if(matrix.IsBufferReady() == true){
       matrix.SetFrameDrawStart();
       RGB_Show();
@@ -988,6 +1027,7 @@ int main(void)
     if(BUF_COUNTER == 0){
       matrix.SetFrameDrawEnd();
     }
+	*/
 
 #endif
 
@@ -1025,7 +1065,7 @@ int main(void)
 			}
 			if(RxData[6] == 0x32){
         LedGreen_OFF;
-				ARGB_FillRGB(0, 0, 0); // Fill all the strip with Red
+				//ARGB_FillRGB(0, 0, 0); // Fill all the strip with Red
 				// while (!RGB_Show());
 				fileName[3] = 0;		// чтобы не читал файл
 			}

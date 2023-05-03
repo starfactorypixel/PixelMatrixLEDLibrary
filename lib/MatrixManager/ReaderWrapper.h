@@ -6,10 +6,6 @@
 #include <ff.h>
 #include <string.h>
 
-void SerialPrint(const char *str, uint16_t len);
-
-//FIL MyFile;
-
 template <uint16_t _buffer_size> 
 class ReaderWrapper
 {
