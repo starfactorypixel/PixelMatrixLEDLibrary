@@ -2,3 +2,7 @@
     RAM:   [======    ]  57.3% (used 11728 bytes from 20480 bytes)
     Flash: [======    ]  60.6% (used 39700 bytes from 65536 bytes)
 
+После оптимизации имён функций:
+    RAM:   [======    ]  57.3% (used 11740 bytes from 20480 bytes)
+    Flash: [======    ]  60.6% (used 39700 bytes from 65536 bytes)
+
