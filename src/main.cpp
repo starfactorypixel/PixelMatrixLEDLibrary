@@ -90,16 +90,11 @@ DMA_HandleTypeDef hdma_tim2_ch1;
 UART_HandleTypeDef huart1;
 
 // For SD
-uint16_t cntBytesStat = 0;
-uint16_t strLen = 160;
-uint16_t strLenData = 160;
-uint8_t fileName[16];
 volatile uint16_t Timer1 = 0;
-uint8_t sect[512];
 #ifndef MATRIX_LIB
+uint16_t cntBytesStat = 0;
+uint8_t sect[512];
 uint8_t readBuff[cntRead];
-#else
-uint32_t FrameBufferLen = 0;
 #endif
 
 /*
@@ -129,7 +124,7 @@ rear_light_can_data_t light_ecu_can_data;
 CANManager can_manager(&HAL_GetTick);
 
 // For RGB
-extern uint8_t *RGB_BUF;
+// extern uint8_t *RGB_BUF;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
