@@ -356,6 +356,16 @@ inline void Setup()
 	matrix.ShowLayer(2);
 	
 	matrix.GetFrameBuffer(frame_buffer_ptr, frame_buffer_len);
+
+	//matrix.ManualMode(true);
+	//matrix.DrawPixel(5, 0xFF0000FF);
+	//matrix.DrawPixel(6, 0xFF00FF00);
+	//matrix.DrawPixel(7, 0xFFFF0000);
+	//matrix.DrawPixel(8, 0xAAFFFFFF);
+	//matrix.DrawPixel(0, 0, 0xFF0000FF);
+	//matrix.DrawPixel(5, 2, 0xFF00FF00);
+	//matrix.DrawPixel(6, 3, 0xFFFF0000);
+	//matrix.ManualDraw();
 	
 	DMAInit();
 	
