@@ -6,3 +6,6 @@
     RAM:   [======    ]  57.3% (used 11740 bytes from 20480 bytes)
     Flash: [======    ]  60.6% (used 39700 bytes from 65536 bytes)
 
+После перевода CANManager на фиксированный размер очередей CANFrames и фиксированное число CANObjects:
+    RAM:   [======    ]  64.9% (used 13284 bytes from 20480 bytes)
+    Flash: [=====     ]  52.6% (used 34448 bytes from 65536 bytes)
