@@ -102,6 +102,7 @@ uint8_t readBuff[cntRead];
 uint32_t FrameBufferLen = 0;
 #endif
 
+/*
 UINT cntReadBytes;
 extern char str1[60];
 uint32_t byteswritten, bytesread;
@@ -114,9 +115,11 @@ DIR dir;
 uint8_t resultF = 0;
 FRESULT res; // результат выполнения
 DWORD fre_clust, fre_sect, tot_sect;
-
+*/
 FATFS SDFatFs;
-FATFS *fs;
+//FATFS *fs;
+
+
 #ifndef MATRIX_LIB
 FIL MyFile;
 #endif
@@ -679,13 +682,15 @@ FRESULT ReadFilePXL(void)
 void InitFlash(void)
 {
     disk_initialize(SDFatFs.drv);
-    f_mount(&SDFatFs, "", 0);
 
-    if (f_mount(&SDFatFs, "", 0) != FR_OK)
+	//f_mount(&SDFatFs, "", 0);
+	
+    if(f_mount(&SDFatFs, "", 1) != FR_OK)
     {
         //		Error_Handler();
         // HAL_UART_Transmit(&huart1,(uint8_t*)"mount error",12,0x1000);
     }
+	/*
     else
     {
         fileInfo.lfname = (char *)sect;
@@ -721,7 +726,7 @@ void InitFlash(void)
             }
             f_closedir(&dir);
         }
-    }
+    }*/
 }
 
 uint32_t current_time = 0;
@@ -806,7 +811,7 @@ int main(void)
     // set CAN data structure to zero
     memset(&light_ecu_can_data, 0, sizeof(light_ecu_can_data));
     // init CANManager
-    init_can_manager(can_manager, light_ecu_can_data);
+    //init_can_manager(can_manager, light_ecu_can_data);
 
     uint32_t can_manager_last_tick = HAL_GetTick();
     CANFrame can_frame;
