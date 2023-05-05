@@ -13,3 +13,6 @@
 После перевода DataFields в CANObject на статику (и удаления функционала Send Raw Data):
     RAM:   [========= ]  89.2% (used 18276 bytes from 20480 bytes)
     Flash: [=====     ]  53.2% (used 34848 bytes from 65536 bytes)
+Если убрать флаг -D DEBUG (многие строки логгера будут выпилены):
+    RAM:   [========= ]  89.2% (used 18276 bytes from 20480 bytes)
+    Flash: [=====     ]  52.3% (used 34272 bytes from 65536 bytes)
