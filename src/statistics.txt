@@ -9,3 +9,7 @@
 После перевода CANManager на фиксированный размер очередей CANFrames и фиксированное число CANObjects:
     RAM:   [======    ]  64.9% (used 13284 bytes from 20480 bytes)
     Flash: [=====     ]  52.6% (used 34448 bytes from 65536 bytes)
+
+После перевода DataFields в CANObject на статику (и удаления функционала Send Raw Data):
+    RAM:   [========= ]  89.2% (used 18276 bytes from 20480 bytes)
+    Flash: [=====     ]  53.2% (used 34848 bytes from 65536 bytes)

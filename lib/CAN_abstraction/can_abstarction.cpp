@@ -104,6 +104,7 @@ bool init_can_manager(CANManager &cm, rear_light_can_data_t &light_ecu_can_data)
     // send raw
     // Link 1 + X	{ type[0] data[1..7] }
     // Для передачи изображений
+    /*
     co = cm.add_can_object(REAR_LIGHT_CANO_ID_IMAGE_TRANSFER, "ImageTransfer");
     DataFieldRawData *df_raw = (DataFieldRawData *)co->add_data_field(DF_RAW_DATA_ARRAY, light_ecu_can_data.image_transfer.chunk, CAN_SEND_RAW_FUNCTION_BUFFER_SIZE);
     co->add_function(CAN_FUNC_SEND_RAW_INIT_IN);
@@ -117,6 +118,6 @@ bool init_can_manager(CANManager &cm, rear_light_can_data_t &light_ecu_can_data)
     df_raw->set_external_handler_free_space_checker(&free_space);
     df_raw->set_external_handler_open_file(&open_tmp_file);
     df_raw->set_external_handler_write_chunk(&write_chunk);
-
+    */
     return true;
 };
