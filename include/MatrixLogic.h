@@ -1,3 +1,4 @@
+//#define MATRIX_STEP_BY_STEP
 #include <MatrixLed.h>
 
 extern TIM_HandleTypeDef htim2;
@@ -354,6 +355,7 @@ inline void Setup()
 	matrix.ShowLayer(0);
 	matrix.ShowLayer(1);
 	matrix.ShowLayer(2);
+	matrix.SetBrightness(10);
 	
 	matrix.GetFrameBuffer(frame_buffer_ptr, frame_buffer_len);
 
@@ -374,7 +376,7 @@ inline void Setup()
 
 uint32_t timer1, timer2, timer3, timer4;
 
-inline void Loop(uint32_t current_time)
+inline void Loop(uint32_t &current_time)
 {
 	timer1 = HAL_GetTick();
 	matrix.Processing(current_time);

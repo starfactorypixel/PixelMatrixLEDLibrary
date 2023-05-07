@@ -127,11 +127,13 @@ public:
 		return;
 	}
 	
+#ifndef MATRIX_STEP_BY_STEP
+	
 	void Processing(uint32_t time)
 	{
 		if(_manual_mode == true) return;
+		if(_frame_buff_ready == true) return;
 		if(time - _last_screen_time <= _fps) return;
-		if(_frame_is_draw == true) return;
 		
 		_last_screen_time = time;
 
@@ -150,11 +152,52 @@ public:
 		}
 		
 		_BrightnessCorrection();
-		
 		_frame_buff_ready = true;
 		
 		return;
 	}
+
+#else
+	#warning Need optimization
+	void Processing(uint32_t time)
+	{
+		if(_manual_mode == true) return;
+		if(_frame_buff_ready == true) return;
+		if(time - _last_screen_time <= _fps) return;
+		
+		switch(_layers_idx)
+		{
+			case 0:
+			{
+				_last_screen_time = time;
+
+				break;
+			}
+			case _max_layers:
+			{
+				_BrightnessCorrection();
+				_frame_buff_ready = true;
+				
+				return;
+			}
+		}
+		
+		layers_t &layer = _layers[_layers_idx++];
+		if(layer.active == true)
+		{
+			layer.parser.GetAutoFrame(time, [&](pixel_data_t &pixel_data)
+			{
+				if (pixel_data.color4 == 255)
+				{
+					memcpy(_frame_buff + pixel_data.index, &pixel_data.color1, 3);
+				}
+			});
+		}
+		
+		return;
+	}
+
+#endif
 	
 	/*
 		Возвращает указатель на кадровый буфер и его размер.
@@ -230,6 +273,7 @@ private:
 	{
 		memset(_frame_buff, 0x00, sizeof(_frame_buff));
 		
+		_layers_idx = 0;
 		_frame_buff_ready = false;
 		_frame_is_draw = false;
 		
@@ -253,6 +297,7 @@ private:
 	}
 	
 	layers_t _layers[_max_layers];
+	uint8_t _layers_idx;
 	
 	color_t _frame_buff[(_width * _height)];
 	bool _frame_buff_ready;
