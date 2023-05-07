@@ -139,6 +139,18 @@ CANObject<uint8_t, 1> obj_hazard_beam(REAR_LIGHT_CANO_ID_HAZARD_BEAM, CAN_TIMER_
 CANObject<uint8_t, 1> obj_custom_beam(REAR_LIGHT_CANO_ID_CUSTOM_BEAM, CAN_TIMER_DISABLED, 300);
 CANObject<uint8_t, 1> obj_custom_image(REAR_LIGHT_CANO_ID_CUSTOM_IMAGE, CAN_TIMER_DISABLED, 300);
 
+struct __attribute__((__packed__)) raw_can_frame_t
+{
+    can_frame_t can_frame;
+    can_object_id_t object_id;
+};
+
+#define FRAME_BUFFER_SIZE 64
+raw_can_frame_t frame_buffer[FRAME_BUFFER_SIZE];
+
+uint8_t frame_buffer_index = 0;
+uint8_t frames_count = 0;
+
 // For RGB
 // extern uint8_t *RGB_BUF;
 
@@ -185,11 +197,17 @@ void init_can_manager_and_objects()
 // вызывается, если по CAN пришла команда включения/выключения габаритов
 void side_beam_set_handler(can_frame_t &can_frame, can_error_t &error)
 {
+    /*
     can_frame.initialized = false;
     error.error_section = ERROR_SECTION_CAN_OBJECT;
     error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
     error.function_id = CAN_FUNC_SET_OUT_ERR;
     return;
+    */
+
+    can_frame.initialized = true;
+    can_frame.function_id = CAN_FUNC_SET_OUT_OK;
+    can_frame.raw_data_length = 1;
 
     light_ecu_can_data.side_beam.brightness = can_frame.data[0];
 
@@ -399,7 +417,17 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
     {
-        can_manager.IncomingCANFrame(RxHeader.StdId, RxData, RxHeader.DLC);
+
+        memcpy(frame_buffer[frame_buffer_index].can_frame.data, RxData, RxHeader.DLC);
+        frame_buffer[frame_buffer_index].can_frame.raw_data_length = RxHeader.DLC;
+        frame_buffer[frame_buffer_index].can_frame.initialized = true;
+        frame_buffer[frame_buffer_index].object_id = RxHeader.StdId & 0xFFFF;
+        frame_buffer_index++;
+        frames_count++;
+        if (frame_buffer_index >= FRAME_BUFFER_SIZE)
+            frame_buffer_index = 0;
+
+        // can_manager.IncomingCANFrame(RxHeader.StdId, RxData, RxHeader.DLC);
 
         LOG("RX: CAN 0x%04lX", RxHeader.StdId);
     }
@@ -442,7 +470,10 @@ void HAL_CAN_Send(can_object_id_t id, uint8_t *data, uint8_t length)
     TxHeader.TransmitGlobalTime = DISABLE;
 
     while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0)
-        ;
+    {
+        LedYellow_ON
+    }
+    LedYellow_OFF
 
     if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
     {
@@ -618,6 +649,7 @@ void InitFlash(void)
 
     if (f_mount(&SDFatFs, "", 1) != FR_OK)
     {
+        LedRed_ON
         //		Error_Handler();
         // HAL_UART_Transmit(&huart1,(uint8_t*)"mount error",12,0x1000);
     }
@@ -762,6 +794,19 @@ int main(void)
             can_manager.Process(current_time);
 
             can_manager_last_tick = HAL_GetTick();
+        }
+
+        if (frames_count > 0)
+        {
+            for (uint8_t i = 0; i < FRAME_BUFFER_SIZE; i++)
+            {
+                if (!frame_buffer[i].can_frame.initialized)
+                    continue;
+                
+                can_manager.IncomingCANFrame(frame_buffer[i].object_id, frame_buffer[i].can_frame.raw_data, frame_buffer[i].can_frame.raw_data_length);
+                frame_buffer[i].can_frame.initialized = false;
+                frames_count--;
+            }
         }
 
         if (Button1 == 0)
@@ -1185,6 +1230,7 @@ void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
+    LedGreen_ON
     while (1)
     {
     }
