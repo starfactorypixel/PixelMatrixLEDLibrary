@@ -418,7 +418,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
     {
 
-        memcpy(frame_buffer[frame_buffer_index].can_frame.data, RxData, RxHeader.DLC);
+        memcpy(frame_buffer[frame_buffer_index].can_frame.raw_data, RxData, RxHeader.DLC);
         frame_buffer[frame_buffer_index].can_frame.raw_data_length = RxHeader.DLC;
         frame_buffer[frame_buffer_index].can_frame.initialized = true;
         frame_buffer[frame_buffer_index].object_id = RxHeader.StdId & 0xFFFF;
