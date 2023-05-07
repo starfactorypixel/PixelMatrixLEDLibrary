@@ -16,3 +16,7 @@
 Если убрать флаг -D DEBUG (многие строки логгера будут выпилены):
     RAM:   [========= ]  89.2% (used 18276 bytes from 20480 bytes)
     Flash: [=====     ]  52.3% (used 34272 bytes from 65536 bytes)
+
+С PixelCANLibrary v.0.1.0
+    RAM:   [======    ]  56.9% (used 11648 bytes from 20480 bytes)
+    Flash: [=====     ]  51.4% (used 33692 bytes from 65536 bytes)

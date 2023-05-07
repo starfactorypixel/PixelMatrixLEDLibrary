@@ -112,8 +112,7 @@ FRESULT res; // результат выполнения
 DWORD fre_clust, fre_sect, tot_sect;
 */
 FATFS SDFatFs;
-//FATFS *fs;
-
+// FATFS *fs;
 
 #ifndef MATRIX_LIB
 FIL MyFile;
@@ -121,7 +120,24 @@ FIL MyFile;
 
 // structure for all data fields of CANObject
 rear_light_can_data_t light_ecu_can_data;
-CANManager can_manager(&HAL_GetTick);
+// HAL_CAN_Send forward declaration
+void HAL_CAN_Send(can_object_id_t id, uint8_t *data, uint8_t length);
+CANManager<12> can_manager(&HAL_CAN_Send);
+
+// common blocks
+CANObject<uint8_t, 7> obj_block_info(REAR_LIGHT_CANO_ID_BLOCK_INFO, 15000, 300);
+CANObject<uint8_t, 7> obj_block_health(REAR_LIGHT_CANO_ID_BLOCK_HEALTH, CAN_TIMER_DISABLED, 300);
+CANObject<uint8_t, 7> obj_block_cfg(REAR_LIGHT_CANO_ID_BLOCK_CFG, CAN_TIMER_DISABLED, CAN_ERROR_DISABLED);
+CANObject<uint8_t, 7> obj_block_error(REAR_LIGHT_CANO_ID_BLOCK_ERROR, CAN_TIMER_DISABLED, 300);
+// specific blocks
+CANObject<uint8_t, 1> obj_side_beam(REAR_LIGHT_CANO_ID_SIDE_BEAM, CAN_TIMER_DISABLED, 300);
+CANObject<uint8_t, 1> obj_brake_light(REAR_LIGHT_CANO_ID_BRAKE_LIGHT, CAN_TIMER_DISABLED, 300);
+CANObject<uint8_t, 1> obj_reverse_light(REAR_LIGHT_CANO_ID_REVERSE_LIGHT, CAN_TIMER_DISABLED, 300);
+CANObject<uint8_t, 1> obj_left_indicator(REAR_LIGHT_CANO_ID_LEFT_INDICATOR, CAN_TIMER_DISABLED, 300);
+CANObject<uint8_t, 1> obj_right_indicator(REAR_LIGHT_CANO_ID_RIGHT_INDICATOR, CAN_TIMER_DISABLED, 300);
+CANObject<uint8_t, 1> obj_hazard_beam(REAR_LIGHT_CANO_ID_HAZARD_BEAM, CAN_TIMER_DISABLED, 300);
+CANObject<uint8_t, 1> obj_custom_beam(REAR_LIGHT_CANO_ID_CUSTOM_BEAM, CAN_TIMER_DISABLED, 300);
+CANObject<uint8_t, 1> obj_custom_image(REAR_LIGHT_CANO_ID_CUSTOM_IMAGE, CAN_TIMER_DISABLED, 300);
 
 // For RGB
 // extern uint8_t *RGB_BUF;
@@ -138,13 +154,44 @@ static void MX_TIM1_Init(void);
 static void MX_ADC1_Init(void);
 /* Private function prototypes -----------------------------------------------*/
 
-// вызывается, если по CAN пришла команда включения/выключения габаритов
-CAN_function_result_t side_beam_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+void init_can_manager_and_objects()
 {
-    if (can_frame == nullptr)
-        return CAN_RES_NEXT_ERR;
+    obj_side_beam.RegisterFunctionSet(&side_beam_set_handler);
+    obj_brake_light.RegisterFunctionSet(&brake_light_set_handler);
+    obj_reverse_light.RegisterFunctionSet(&reverse_light_set_handler);
+    obj_left_indicator.RegisterFunctionSet(&turn_left_set_handler);
+    obj_right_indicator.RegisterFunctionSet(&turn_right_set_handler);
+    obj_hazard_beam.RegisterFunctionSet(&hazard_beam_set_handler);
+    obj_custom_beam.RegisterFunctionSet(&custom_beam_set_handler);
+    obj_custom_image.RegisterFunctionSet(&custom_image_set_handler);
 
-    light_ecu_can_data.side_beam.brightness = can_frame->get_data_pointer()[1];
+    // common blocks
+    can_manager.RegisterObject(obj_block_info);
+    can_manager.RegisterObject(obj_block_health);
+    can_manager.RegisterObject(obj_block_cfg);
+    can_manager.RegisterObject(obj_block_error);
+
+    // specific blocks
+    can_manager.RegisterObject(obj_side_beam);
+    can_manager.RegisterObject(obj_brake_light);
+    can_manager.RegisterObject(obj_reverse_light);
+    can_manager.RegisterObject(obj_left_indicator);
+    can_manager.RegisterObject(obj_right_indicator);
+    can_manager.RegisterObject(obj_hazard_beam);
+    can_manager.RegisterObject(obj_custom_beam);
+    can_manager.RegisterObject(obj_custom_image);
+}
+
+// вызывается, если по CAN пришла команда включения/выключения габаритов
+void side_beam_set_handler(can_frame_t &can_frame, can_error_t &error)
+{
+    can_frame.initialized = false;
+    error.error_section = ERROR_SECTION_CAN_OBJECT;
+    error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
+    error.function_id = CAN_FUNC_SET_OUT_ERR;
+    return;
+
+    light_ecu_can_data.side_beam.brightness = can_frame.data[0];
 
     if (light_ecu_can_data.side_beam.brightness == 0)
     {
@@ -158,21 +205,18 @@ CAN_function_result_t side_beam_set_handler(CANObject &parent_object, CANFunctio
         // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
         // matrix.SetBrightness(light_ecu_can_data.side_beam.brightness);
     }
-
-    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
-    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
-    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
-    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
-    return CAN_RES_NEXT_OK;
 }
 
 // вызывается, если по CAN пришла команда включения/выключения стоп-сигналов
-CAN_function_result_t brake_light_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+void brake_light_set_handler(can_frame_t &can_frame, can_error_t &error)
 {
-    if (can_frame == nullptr)
-        return CAN_RES_NEXT_ERR;
+    can_frame.initialized = false;
+    error.error_section = ERROR_SECTION_CAN_OBJECT;
+    error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
+    error.function_id = CAN_FUNC_SET_OUT_ERR;
+    return;
 
-    light_ecu_can_data.brake_light.brightness = can_frame->get_data_pointer()[1];
+    light_ecu_can_data.brake_light.brightness = can_frame.data[0];
 
     if (light_ecu_can_data.brake_light.brightness == 0)
     {
@@ -186,21 +230,18 @@ CAN_function_result_t brake_light_set_handler(CANObject &parent_object, CANFunct
         // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
         // matrix.SetBrightness(light_ecu_can_data.brake_light.brightness);
     }
-
-    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
-    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
-    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
-    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
-    return CAN_RES_NEXT_OK;
 }
 
 // вызывается, если по CAN пришла команда включения/выключения заднего хода
-CAN_function_result_t reverse_light_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+void reverse_light_set_handler(can_frame_t &can_frame, can_error_t &error)
 {
-    if (can_frame == nullptr)
-        return CAN_RES_NEXT_ERR;
+    can_frame.initialized = false;
+    error.error_section = ERROR_SECTION_CAN_OBJECT;
+    error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
+    error.function_id = CAN_FUNC_SET_OUT_ERR;
+    return;
 
-    light_ecu_can_data.reverse_light.brightness = can_frame->get_data_pointer()[1];
+    light_ecu_can_data.reverse_light.brightness = can_frame.data[0];
 
     if (light_ecu_can_data.reverse_light.brightness == 0)
     {
@@ -214,21 +255,18 @@ CAN_function_result_t reverse_light_set_handler(CANObject &parent_object, CANFun
         // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
         // matrix.SetBrightness(light_ecu_can_data.reverse_light.brightness);
     }
-
-    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
-    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
-    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
-    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
-    return CAN_RES_NEXT_OK;
 }
 
 // вызывается, если по CAN пришла команда включения/выключения левого поворотника
-CAN_function_result_t turn_left_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+void turn_left_set_handler(can_frame_t &can_frame, can_error_t &error)
 {
-    if (can_frame == nullptr)
-        return CAN_RES_NEXT_ERR;
+    can_frame.initialized = false;
+    error.error_section = ERROR_SECTION_CAN_OBJECT;
+    error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
+    error.function_id = CAN_FUNC_SET_OUT_ERR;
+    return;
 
-    light_ecu_can_data.left_indicator.brightness = can_frame->get_data_pointer()[1];
+    light_ecu_can_data.left_indicator.brightness = can_frame.data[0];
 
     // TODO: надо же ещё мигать выводами OUTx?
     if (light_ecu_can_data.left_indicator.brightness == 0)
@@ -243,21 +281,18 @@ CAN_function_result_t turn_left_set_handler(CANObject &parent_object, CANFunctio
         // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
         // matrix.SetBrightness(light_ecu_can_data.left_indicator.brightness);
     }
-
-    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
-    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
-    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
-    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
-    return CAN_RES_NEXT_OK;
 }
 
 // вызывается, если по CAN пришла команда включения/выключения правкого поворотника
-CAN_function_result_t turn_right_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+void turn_right_set_handler(can_frame_t &can_frame, can_error_t &error)
 {
-    if (can_frame == nullptr)
-        return CAN_RES_NEXT_ERR;
+    can_frame.initialized = false;
+    error.error_section = ERROR_SECTION_CAN_OBJECT;
+    error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
+    error.function_id = CAN_FUNC_SET_OUT_ERR;
+    return;
 
-    light_ecu_can_data.right_indicator.brightness = can_frame->get_data_pointer()[1];
+    light_ecu_can_data.right_indicator.brightness = can_frame.data[0];
 
     // TODO: надо же ещё мигать выводами OUTx?
     if (light_ecu_can_data.right_indicator.brightness == 0)
@@ -272,21 +307,18 @@ CAN_function_result_t turn_right_set_handler(CANObject &parent_object, CANFuncti
         // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
         // matrix.SetBrightness(light_ecu_can_data.right_indicator.brightness);
     }
-
-    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
-    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
-    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
-    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
-    return CAN_RES_NEXT_OK;
 }
 
 // вызывается, если по CAN пришла команда включения/выключения аварийного сигнала
-CAN_function_result_t hazard_beam_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+void hazard_beam_set_handler(can_frame_t &can_frame, can_error_t &error)
 {
-    if (can_frame == nullptr)
-        return CAN_RES_NEXT_ERR;
+    can_frame.initialized = false;
+    error.error_section = ERROR_SECTION_CAN_OBJECT;
+    error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
+    error.function_id = CAN_FUNC_SET_OUT_ERR;
+    return;
 
-    light_ecu_can_data.hazard_beam.brightness = can_frame->get_data_pointer()[1];
+    light_ecu_can_data.hazard_beam.brightness = can_frame.data[0];
 
     // TODO: надо же ещё мигать выводами OUTx?
     if (light_ecu_can_data.hazard_beam.brightness == 0)
@@ -305,21 +337,18 @@ CAN_function_result_t hazard_beam_set_handler(CANObject &parent_object, CANFunct
         // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
         // matrix.SetBrightness(light_ecu_can_data.hazard_beam.brightness);
     }
-
-    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
-    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
-    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
-    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
-    return CAN_RES_NEXT_OK;
 }
 
 // вызывается, если по CAN пришла команда включения/выключения пользовательского света
-CAN_function_result_t custom_beam_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+void custom_beam_set_handler(can_frame_t &can_frame, can_error_t &error)
 {
-    if (can_frame == nullptr)
-        return CAN_RES_NEXT_ERR;
+    can_frame.initialized = false;
+    error.error_section = ERROR_SECTION_CAN_OBJECT;
+    error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
+    error.function_id = CAN_FUNC_SET_OUT_ERR;
+    return;
 
-    light_ecu_can_data.custom_beam.brightness = can_frame->get_data_pointer()[1];
+    light_ecu_can_data.custom_beam.brightness = can_frame.data[0];
 
     if (light_ecu_can_data.custom_beam.brightness == 0)
     {
@@ -331,21 +360,18 @@ CAN_function_result_t custom_beam_set_handler(CANObject &parent_object, CANFunct
         // TODO: включение - это любое значение больше 0?
         // Или жестко 255 будет включение, а 1..254 не будут влиять ни на что?
     }
-
-    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
-    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
-    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
-    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
-    return CAN_RES_NEXT_OK;
 }
 
 // вызывается, если по CAN пришла команда включения/выключения пользовательского изображения на панели
-CAN_function_result_t custom_image_set_handler(CANObject &parent_object, CANFunctionBase &parent_function, CANFrame *can_frame)
+void custom_image_set_handler(can_frame_t &can_frame, can_error_t &error)
 {
-    if (can_frame == nullptr)
-        return CAN_RES_NEXT_ERR;
+    can_frame.initialized = false;
+    error.error_section = ERROR_SECTION_CAN_OBJECT;
+    error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
+    error.function_id = CAN_FUNC_SET_OUT_ERR;
+    return;
 
-    light_ecu_can_data.custom_image.brightness = can_frame->get_data_pointer()[1];
+    light_ecu_can_data.custom_image.brightness = can_frame.data[0];
 
     // TODO: надо же ещё мигать выводами OUTx?
     if (light_ecu_can_data.custom_image.brightness == 0)
@@ -358,84 +384,6 @@ CAN_function_result_t custom_image_set_handler(CANObject &parent_object, CANFunc
         // TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
         // matrix.SetBrightness(light_ecu_can_data.custom_image.brightness);
     }
-
-    // если всё хорошо, возвращаем CAN_RES_NEXT_OK (в CAN уйдёт ОК-сообщение)
-    // если что-то пошло не так, то возвращаем CAN_RES_NEXT_ERR (в CAN уйдёт сообщение об ошибке)
-    // если всё обработали, но ничего в CAN сообщать не хотим, то возвращаем CAN_RES_FINAL
-    // если сейчас не можем обработать, то возвращаем CAN_RES_NONE
-    return CAN_RES_NEXT_OK;
-}
-
-// CAN Send Raw Function Callback
-// вызывается при проверке наличия свободного места
-// возвращает:
-//    true, если для указанного количества байт есть место
-//    false, если места нет
-bool free_space(uint32_t size_needed)
-{
-    LOG("callback: free_space()");
-
-    // TODO: в качестве заглушки всегда говорим, что места нет
-    // но надо прикрутить функцию из FAT
-    return false;
-}
-
-// CAN Send Raw Function Callback
-// вызывается при создании нового ВРЕМЕННОГО файла для записи
-// возвращает:
-//    true, если всё успешно
-//    false, если не удалось
-bool open_tmp_file()
-{
-    LOG("callback: open_tmp_file()");
-
-    // TODO: в качестве заглушки ничего не делаем и возвращаем "не шмогла"
-    // но надо прикрутить функцию из FAT
-    return false;
-}
-
-// CAN Send Raw Function Callback
-// вызывается при записи во временный файл очередного чанка с данными
-// возвращает:
-//    true, если всё успешно
-//    false, если не удалось
-bool write_chunk(uint8_t chunk_size, uint8_t *chunk_data)
-{
-    LOG("callback: write_chunk()");
-
-    // TODO: в качестве заглушки ничего не делаем и возвращаем "не шмогла"
-    // но надо прикрутить функцию из FAT
-    return false;
-}
-
-// CAN Send Raw Function Callback
-// вызывается при окончании записи во временный файл
-// сюда передаётся цифровой код файла, под которым требуется сохранить этот временный файл
-// возвращает:
-//    true, если всё успешно
-//    false, если не удалось
-bool close_file(uint8_t file_code)
-{
-    LOG("callback: close_file()");
-
-    // TODO: в качестве заглушки ничего не делаем и возвращаем "не шмогла"
-    // но надо прикрутить функцию из FAT
-    return false;
-}
-
-// CAN Send Raw Function Callback
-// вызывается, если запись файла была прервана
-// нужно удалить временный файл, очистить память и т.п.
-// возвращает:
-//    true, если всё успешно
-//    false, если не удалось (по факту, вызывающему коду на это уже плевать)
-bool abort_callback()
-{
-    LOG("callback: abort_callback()");
-
-    // TODO: в качестве заглушки ничего не делаем и возвращаем "не шмогла"
-    // но надо прикрутить функцию из FAT
-    return false;
 }
 
 /*
@@ -451,8 +399,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
     {
-        CANFrame new_frame(RxHeader.StdId, &RxData[0], RxHeader.DLC);
-        can_manager.take_new_rx_frame(new_frame);
+        can_manager.IncomingCANFrame(RxHeader.StdId, RxData, RxHeader.DLC);
 
         LOG("RX: CAN 0x%04lX", RxHeader.StdId);
     }
@@ -467,7 +414,7 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
     LOG("CAN ERROR: %lu %08lX", (unsigned long)er, (unsigned long)er);
 }
 
-void HAL_CAN_Send(CANFrame &can_frame)
+void HAL_CAN_Send(can_object_id_t id, uint8_t *data, uint8_t length)
 {
     /*
       Заполняем структуру отвечающую за отправку кадров
@@ -485,32 +432,21 @@ void HAL_CAN_Send(CANFrame &can_frame)
     */
     CAN_TxHeaderTypeDef TxHeader;
     uint8_t TxData[8] = {0};
+    memcpy(TxData, data, length);
     uint32_t TxMailbox = 0;
-    TxHeader.StdId = can_frame.get_id();
+    TxHeader.StdId = id;
     TxHeader.ExtId = 0;
     TxHeader.RTR = CAN_RTR_DATA; // CAN_RTR_REMOTE
     TxHeader.IDE = CAN_ID_STD;   // CAN_ID_EXT
-    TxHeader.DLC = can_frame.get_data_length();
+    TxHeader.DLC = length;
     TxHeader.TransmitGlobalTime = DISABLE;
 
     while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0)
         ;
 
-    can_frame.copy_frame_data_to(TxData, 8);
-
     if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
     {
         LOG("CAN TX ERROR: 0x%04lX", TxHeader.StdId);
-    }
-}
-
-void CAN_Send_All_Frames(CANManager &can_manager)
-{
-    CANFrame can_frame;
-    while (can_manager.has_tx_frames_for_transmission())
-    {
-        can_manager.give_tx_frame(can_frame);
-        HAL_CAN_Send(can_frame);
     }
 }
 
@@ -678,14 +614,14 @@ void InitFlash(void)
 {
     disk_initialize(SDFatFs.drv);
 
-	//f_mount(&SDFatFs, "", 0);
-	
-    if(f_mount(&SDFatFs, "", 1) != FR_OK)
+    // f_mount(&SDFatFs, "", 0);
+
+    if (f_mount(&SDFatFs, "", 1) != FR_OK)
     {
         //		Error_Handler();
         // HAL_UART_Transmit(&huart1,(uint8_t*)"mount error",12,0x1000);
     }
-	/*
+    /*
     else
     {
         fileInfo.lfname = (char *)sect;
@@ -806,11 +742,9 @@ int main(void)
     // set CAN data structure to zero
     memset(&light_ecu_can_data, 0, sizeof(light_ecu_can_data));
     // init CANManager
-    //init_can_manager(can_manager, light_ecu_can_data);
+    init_can_manager_and_objects();
 
     uint32_t can_manager_last_tick = HAL_GetTick();
-    CANFrame can_frame;
-    uint8_t can_frame_data[8];
     while (1)
     {
         current_time = HAL_GetTick();
@@ -823,14 +757,9 @@ int main(void)
 #endif
 
         // CAN Manager checks data every 300 ms
-        if (current_time - can_manager_last_tick > 300)
+        if (current_time - can_manager_last_tick > 100)
         {
-            // do all stuff and process RX frames
-            can_manager.process();
-
-            // send TX frames if there are any
-            if (can_manager.has_tx_frames_for_transmission())
-                CAN_Send_All_Frames(can_manager);
+            can_manager.Process(current_time);
 
             can_manager_last_tick = HAL_GetTick();
         }
@@ -841,20 +770,7 @@ int main(void)
         }
         if (Button2 == 0)
         {
-            can_frame_data[0] = 0x44;
-            can_frame_data[1] = 0x53;
-            can_frame_data[2] = 0x46;
-            can_frame_data[3] = 0x30;
-            can_frame_data[4] = 0x30;
-            can_frame_data[5] = 0x30;
-            can_frame_data[6] = 0x32;
-            can_frame_data[7] = 0x00;
-            can_frame.set_frame(0x07B0, can_frame_data, 8);
-        }
-        if (can_frame.is_initialized())
-        {
-            HAL_CAN_Send(can_frame);
-            can_frame.clear_frame();
+            // do something here
         }
     }
 }
