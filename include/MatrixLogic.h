@@ -1,3 +1,4 @@
+//#define MATRIX_STEP_BY_STEP
 #include <MatrixLed.h>
 
 extern TIM_HandleTypeDef htim2;
@@ -354,8 +355,19 @@ inline void Setup()
 	matrix.ShowLayer(0);
 	matrix.ShowLayer(1);
 	matrix.ShowLayer(2);
+	matrix.SetBrightness(10);
 	
 	matrix.GetFrameBuffer(frame_buffer_ptr, frame_buffer_len);
+
+	//matrix.ManualMode(true);
+	//matrix.DrawPixel(5, 0xFF0000FF);
+	//matrix.DrawPixel(6, 0xFF00FF00);
+	//matrix.DrawPixel(7, 0xFFFF0000);
+	//matrix.DrawPixel(8, 0xAAFFFFFF);
+	//matrix.DrawPixel(0, 0, 0xFF0000FF);
+	//matrix.DrawPixel(5, 2, 0xFF00FF00);
+	//matrix.DrawPixel(6, 3, 0xFFFF0000);
+	//matrix.ManualDraw();
 	
 	DMAInit();
 	
@@ -364,7 +376,7 @@ inline void Setup()
 
 uint32_t timer1, timer2, timer3, timer4;
 
-inline void Loop(uint32_t current_time)
+inline void Loop(uint32_t &current_time)
 {
 	timer1 = HAL_GetTick();
 	matrix.Processing(current_time);
@@ -376,16 +388,25 @@ inline void Loop(uint32_t current_time)
 		
 		DMADraw();
 		
-		//Serial::Print(frame_buffer_ptr, frame_buffer_len);
-		Serial::Print("LogicTime: ");
-		Serial::Print( (timer2 - timer1) );
-		Serial::Println();
+		//Serial::Print("LogicTime: ");
+		//Serial::Print( (timer2 - timer1) );
+		//Serial::Println();
+		
+		//Serial::Print("+SF-PXL=128,16,2\r\n");
+		Serial::Print(frame_buffer_ptr, frame_buffer_len);
+		
+		//Serial::Print("LogicTime: ");
+		//Serial::Print( (timer2 - timer1) );
+		//Serial::Println();
 	}
 	
 	if( matrix.GetFrameIsDraw() == true && frame_buffer_idx == 0 )
 	{
 		matrix.SetFrameDrawEnd();
 	}
+	
+	// Обновляем текущее время, чтобы все последующий вызовы текущего loop получили его актуальным.
+	current_time = HAL_GetTick();
 	
 	return;
 }
