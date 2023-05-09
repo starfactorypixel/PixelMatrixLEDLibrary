@@ -15,19 +15,27 @@ class PowerOutputs
 {
 	using event_short_circuit_t = void (*)(uint8_t num, uint16_t current);
 	
+	enum mode_t : uint8_t { MODE_OFF, MODE_ON, MODE_PWM, MODE_BLINK };
+
 	typedef struct
 	{
-		GPIO_TypeDef * port;
-		uint16_t digitalpin;
-		uint16_t analogpin;
-		bool state;
-	} ports_t;
+		GPIO_TypeDef *port;
+		uint16_t pin_digital;
+		uint16_t pin_analog;
+		
+		mode_t mode;
+		GPIO_PinState state;
+		uint16_t blink_on;
+		uint16_t blink_off;
+		uint32_t blink_time;
+		uint32_t blink_delay;
+	} channel_t;
 	
 	public:
 		
 		PowerOutputs(uint32_t vref, uint8_t gain, uint8_t shunt) : _vref(vref), _gain(gain), _shunt(shunt)
 		{
-			memset(&_ports, 0x00, sizeof(_ports));
+			memset(&_channels, 0x00, sizeof(_channels));
 			
 			return;
 		}
@@ -39,11 +47,11 @@ class PowerOutputs
 			return;
 		}
 		
-		void AddPort(ports_t port)
+		void AddPort(channel_t port)
 		{
 			if(_ports_idx == _ports_max) return;
 			
-			_ports[_ports_idx++] = port;
+			_channels[_ports_idx++] = port;
 			
 			return;
 		}
@@ -55,21 +63,19 @@ class PowerOutputs
 			return;
 		}
 		
-		bool On(uint8_t out)
+		bool SetOn(uint8_t out)
 		{
 			if(out > _ports_max) return false;
 			
-			ports_t &port_data = _ports[out-1];
+			channel_t &channel = _channels[out-1];
 			
-			HAL_GPIO_WritePin(port_data.port, port_data.digitalpin, GPIO_PIN_SET);
-			port_data.state = true;
-			
+			_HW_HIGH(channel);
 			_delayTick(10000);
 			
-			uint16_t current = _GetCurrent(port_data.analogpin);
+			uint16_t current = _HW_GetCurrent(channel);
 			if( _CheckCurrent(current) == 1 )
 			{
-				Off(out);
+				_HW_LOW(channel);
 				
 				return false;
 			}
@@ -77,61 +83,109 @@ class PowerOutputs
 			return true;
 		}
 		
-		void Off(uint8_t out)
+		bool SetOn(uint8_t out, uint16_t blink_on, uint16_t blink_off)
+		{
+			if(out > _ports_max) return false;
+			
+			if( SetOn(out) == true )
+			{
+				channel_t &channel = _channels[out-1];
+				
+				channel.blink_on = blink_on;
+				channel.blink_off = blink_off;
+				channel.mode = MODE_BLINK;
+
+				return true;
+			}
+			
+			return false;
+		}
+		
+		void SetOff(uint8_t out)
 		{
 			if(out > _ports_max) return;
 			
-			ports_t &port_data = _ports[out-1];
+			channel_t &channel = _channels[out-1];
 			
-			HAL_GPIO_WritePin(port_data.port, port_data.digitalpin, GPIO_PIN_RESET);
-			port_data.state = false;
+			_HW_LOW(channel);
 			
 			return;
 		}
 		
-		uint16_t Current(uint8_t out)
+		uint16_t GetCurrent(uint8_t out)
 		{
 			if(out > _ports_max) return 0;
 
-			ports_t &port_data = _ports[out-1];
+			channel_t &channel = _channels[out-1];
 			
-			return _GetCurrent(port_data.analogpin);
+			return _HW_GetCurrent(channel);
 		}
 		
 		void Processing(uint32_t current_time)
 		{
-			if(current_time - _last_time < 20) return;
+			if(current_time - _last_tick_time < 10) return;
+			_last_tick_time = current_time;
 			
 			uint16_t current;
 			for(uint8_t i = 0; i < _ports_max; ++i)
 			{
-				ports_t &port_data = _ports[i];
+				channel_t &channel = _channels[i];
 				
-				if(port_data.port == NULL) continue;
-				if(port_data.state == false) continue;
+				if(channel.port == NULL) continue;
+				if(channel.mode == MODE_OFF) continue;
 				
-				current = _GetCurrent(port_data.analogpin);
+				current = _HW_GetCurrent(channel);
 				if( _CheckCurrent(current) == 1 )
 				{
-					Off(i);
+					_HW_LOW(channel);
 					
 					if(_event_short_circuit != nullptr)
 					{
 						_event_short_circuit( (i + 1), current );
 					}
 				}
+				
+				if(channel.mode == MODE_BLINK && current_time - channel.blink_time > channel.blink_delay)
+				{
+					channel.blink_time = current_time;
+					
+					if(channel.state == GPIO_PIN_RESET)
+					{
+						channel.blink_delay = channel.blink_on;
+						_HW_HIGH(channel);
+					}
+					else
+					{
+						channel.blink_delay = channel.blink_off;
+						_HW_LOW(channel);
+					}
+				}
 			}
-			
-			_last_time = current_time;
 			
 			return;
 		}
 		
 	private:
 		
-		uint16_t _GetCurrent(uint16_t channel)
+		void _HW_HIGH(channel_t &channel)
 		{
-			_adc_config.Channel = channel;
+			HAL_GPIO_WritePin(channel.port, channel.pin_digital, GPIO_PIN_SET);
+			channel.state = GPIO_PIN_SET;
+			
+			return;
+		}
+		
+		void _HW_LOW(channel_t &channel)
+		{
+			HAL_GPIO_WritePin(channel.port, channel.pin_digital, GPIO_PIN_RESET);
+			channel.state = GPIO_PIN_RESET;
+			
+			return;
+		}
+		
+		uint16_t _HW_GetCurrent(channel_t &channel)
+		{
+			_adc_config.Channel = channel.pin_analog;
 			
 			HAL_ADC_ConfigChannel(&hadc1, &_adc_config);
 			//HAL_ADCEx_Calibration_Start(&hadc1);
@@ -156,16 +210,17 @@ class PowerOutputs
 			
 			return;
 		}
-
+		
 		const uint32_t _vref;
 		const uint8_t _gain;
 		const uint8_t _shunt;
 		
+		channel_t _channels[_ports_max];
+		uint8_t _ports_idx = 0;
+		
 		ADC_ChannelConfTypeDef _adc_config = { ADC_CHANNEL_1, ADC_REGULAR_RANK_1, ADC_SAMPLETIME_1CYCLE_5 };
 		
 		event_short_circuit_t _event_short_circuit = nullptr;
-		uint32_t _last_time = 0;
 		
-		ports_t _ports[_ports_max];
-		uint8_t _ports_idx = 0;
+		uint32_t _last_tick_time = 0;
 };
