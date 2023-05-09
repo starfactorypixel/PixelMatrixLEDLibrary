@@ -264,6 +264,7 @@ private:
 		while(frame_buff_idx > 0)
 		{
 			_BrightnessConvert( buffer[--frame_buff_idx] );
+			//_BrightnessGammaConvert( buffer[--frame_buff_idx] );
 		}
 		
 		return;
@@ -289,11 +290,11 @@ private:
 	}
 
 	// Расчёт яркости пикселя + гамма-коррекция по параболе x^2
-	inline void _BrightnessGammaConvert(uint16_t &val)
+	inline void _BrightnessGammaConvert(uint8_t &val)
 	{
 		if(val == 0) return;
 
-		val = ((val * val * _brightness) + 130305) >> 16;
+		val = (((uint32_t)val * val * _brightness) + 130305) >> 16;
 	}
 	
 	layers_t _layers[_max_layers];

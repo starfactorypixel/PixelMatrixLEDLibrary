@@ -258,7 +258,7 @@ private:
 		_header_file.format_strip = data[6] & 0x0F;
 		_header_file.format_color = (data[6] >> 4) & 0x0F;
 		_header_file.img_frames = data[7] | (data[8] << 8);
-		_header_file.img_repeats = data[9];
+		_header_file.img_repeats = (data[9] == 0) ? 1 : data[9];	// Если указано 0 повторов, то считаем что нужно показать 1 раз.
 
 		_AnalysisFile();
 
