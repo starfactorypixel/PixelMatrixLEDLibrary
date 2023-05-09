@@ -63,6 +63,8 @@ namespace CANLib
 		can_frame.initialized = true;
 		can_frame.function_id = CAN_FUNC_SET_OUT_OK;
 		// can_frame.data[0] doesn't change
+		// TODO: может читать установленное значение с порта и его присваивать в can_frame.data[0]?
+		// читать вот этой функцией: HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_9)
 		can_frame.raw_data_length = 2;
 	}
 
