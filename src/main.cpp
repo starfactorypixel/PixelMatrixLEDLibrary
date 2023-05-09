@@ -625,6 +625,8 @@ static void MX_ADC1_Init(void)
 static void MX_CAN_Init(void)
 {
 
+	// https://istarik.ru/blog/stm32/159.html
+
     /* USER CODE BEGIN CAN_Init 0 */
     CAN_FilterTypeDef sFilterConfig;
     /* USER CODE END CAN_Init 0 */
@@ -634,16 +636,16 @@ static void MX_CAN_Init(void)
     /* USER CODE END CAN_Init 1 */
     hcan.Instance = CAN1;
     hcan.Init.Prescaler = 4;
-    hcan.Init.Mode = CAN_MODE_NORMAL;
+    hcan.Init.Mode = CAN_MODE_NORMAL;			// CAN_MODE_NORMAL
     hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
     hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
     hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-    hcan.Init.TimeTriggeredMode = DISABLE;
-    hcan.Init.AutoBusOff = DISABLE;
-    hcan.Init.AutoWakeUp = DISABLE;
-    hcan.Init.AutoRetransmission = DISABLE;
-    hcan.Init.ReceiveFifoLocked = DISABLE;
-    hcan.Init.TransmitFifoPriority = DISABLE;
+    hcan.Init.TimeTriggeredMode = DISABLE;		// DISABLE
+    hcan.Init.AutoBusOff = ENABLE;				// DISABLE
+    hcan.Init.AutoWakeUp = ENABLE;				// DISABLE
+    hcan.Init.AutoRetransmission = DISABLE;		// DISABLE
+    hcan.Init.ReceiveFifoLocked = ENABLE;		// DISABLE
+    hcan.Init.TransmitFifoPriority = ENABLE;	// DISABLE
     if (HAL_CAN_Init(&hcan) != HAL_OK)
     {
         Error_Handler();
