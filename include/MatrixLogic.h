@@ -14,6 +14,7 @@ namespace Matrix
 	static constexpr uint8_t CFG_Width = 128;	// Ширина экрана.
 	static constexpr uint8_t CFG_Height = 16;	// Высота экрана.
 	static constexpr uint16_t CFG_Delay = 200;	// Интервал обновления экрана.
+	#define ROOT_DIRECTORY ("/led_pxl_r")		// Папка с файлами pxl.
 	/* */
 	
 	MatrixLed<CFG_Layers, CFG_Width, CFG_Height> matrixObj(CFG_Delay);
@@ -341,22 +342,36 @@ static void RGB_TIM_DMADelayPulseCplt(DMA_HandleTypeDef *hdma) {
 
 inline void Setup()
 {
-	matrixObj.RegLayer("f1.pxl", 1);
-	matrixObj.RegLayer("f2.pxl", 2);
-	matrixObj.RegLayer("f3.pxl", 0);
 
-	// 0 - Фон / Заливка;
-	// 1 - Анимация;
-	// 2 - Габариты;
-	// 3 - Задних ход;
-	// 4 - Стопы;
-	// 5 - Повтороты лево;
-	// 6 - Повтороты право;
-	// 7 - Аварийка;
+#ifdef ROOT_DIRECTORY
+	f_chdir(ROOT_DIRECTORY);
+#endif
+	
+	matrixObj.RegLayer("layer0.pxl", 0);	// 0 - Фон / Заливка;
+	matrixObj.RegLayer("layer1.pxl", 1);	// 1 - Анимация;
+	matrixObj.RegLayer("layer2.pxl", 2);	// 2 - Габариты;
+	matrixObj.RegLayer("layer3.pxl", 3);	// 3 - Задних ход;
+	matrixObj.RegLayer("layer4.pxl", 4);	// 4 - Стопы;
+	matrixObj.RegLayer("layer5.pxl", 5);	// 5 - Повтороты лево;
+	matrixObj.RegLayer("layer6.pxl", 6);	// 6 - Повтороты право;
+	matrixObj.RegLayer("layer7.pxl", 7);	// 7 - Аварийка;
 
 	matrixObj.ShowLayer(0);
 	matrixObj.ShowLayer(1);
-	matrixObj.ShowLayer(2);
+	//matrixObj.ShowLayer(2);
+	//matrixObj.ShowLayer(3);
+	//matrixObj.ShowLayer(4);
+	//matrixObj.ShowLayer(5);
+	//matrixObj.ShowLayer(6);
+	//matrixObj.ShowLayer(7);
+
+	//matrixObj.RegLayer("f1.pxl", 1);
+	//matrixObj.RegLayer("f2.pxl", 2);
+	//matrixObj.RegLayer("f3.pxl", 0);
+	//matrixObj.ShowLayer(0);
+	//matrixObj.ShowLayer(1);
+	//matrixObj.ShowLayer(2);
+
 	matrixObj.SetBrightness(10);
 	
 	matrixObj.GetFrameBuffer(frame_buffer_ptr, frame_buffer_len);

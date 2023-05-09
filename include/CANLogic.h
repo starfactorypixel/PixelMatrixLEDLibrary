@@ -72,11 +72,17 @@ namespace CANLib
 	// вызывается, если по CAN пришла команда включения/выключения стоп-сигналов
 	void brake_light_set_handler(can_frame_t &can_frame, can_error_t &error)
 	{
+		/*
 		can_frame.initialized = false;
 		error.error_section = ERROR_SECTION_CAN_OBJECT;
 		error.error_code = ERROR_CODE_OBJECT_SET_FUNCTION_IS_MISSING;
 		error.function_id = CAN_FUNC_SET_OUT_ERR;
 		return;
+		*/
+
+		can_frame.initialized = true;
+		can_frame.function_id = CAN_FUNC_SET_OUT_OK;
+		can_frame.raw_data_length = 2;
 
 		light_ecu_can_data.brake_light.brightness = can_frame.data[0];
 
@@ -84,11 +90,13 @@ namespace CANLib
 		{
 			//OUT2_OFF;
 			Matrix::matrixObj.HideLayer(4);
+			PowerOut::outObj.SetOff(2);
 		}
 		else
 		{
 			//OUT2_ON;
 			Matrix::matrixObj.ShowLayer(4);
+			PowerOut::outObj.SetOn(2);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
 			// matrixObj.SetBrightness(light_ecu_can_data.brake_light.brightness);
 		}
@@ -187,15 +195,13 @@ namespace CANLib
 		{
 			//OUT4_OFF;
 			//OUT5_OFF;
-			Matrix::matrixObj.HideLayer(5);
-			Matrix::matrixObj.HideLayer(6);
+			Matrix::matrixObj.HideLayer(7);
 		}
 		else
 		{
 			//OUT4_ON;
 			//OUT5_ON;
-			Matrix::matrixObj.ShowLayer(5);
-			Matrix::matrixObj.ShowLayer(6);
+			Matrix::matrixObj.ShowLayer(7);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
 			// matrixObj.SetBrightness(light_ecu_can_data.hazard_beam.brightness);
 		}
@@ -287,6 +293,18 @@ namespace CANLib
 	inline void Loop(uint32_t &current_time)
 	{
 		can_manager.Process(current_time);
+
+		static uint32_t iter = 0;
+		if(current_time - iter > 1000)
+		{
+			iter = current_time;
+			
+			uint8_t *data = (uint8_t*)&current_time;
+			obj_block_info.SetValue(3, data[0], CAN_TIMER_TYPE_NORMAL);
+			obj_block_info.SetValue(4, data[1], CAN_TIMER_TYPE_NORMAL);
+			obj_block_info.SetValue(5, data[2], CAN_TIMER_TYPE_NORMAL);
+			obj_block_info.SetValue(6, data[3], CAN_TIMER_TYPE_NORMAL);
+		}
 		
 		current_time = HAL_GetTick();
 		
