@@ -26,6 +26,7 @@
 #include <SerialUtils.h>
 #include <MatrixLogic.h>
 #include <CANLibrary.h>
+#include <OutputLogic.h>
 #include "can_abstarction.h"
 
 #define Button1 HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_8)
