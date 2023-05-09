@@ -16,7 +16,7 @@ namespace Matrix
 	static constexpr uint16_t CFG_Delay = 200;	// Интервал обновления экрана.
 	/* */
 	
-	MatrixLed<CFG_Layers, CFG_Width, CFG_Height> matrix(CFG_Delay);
+	MatrixLed<CFG_Layers, CFG_Width, CFG_Height> matrixObj(CFG_Delay);
 	
 	uint8_t *frame_buffer_ptr;
 	uint16_t frame_buffer_len;
@@ -341,9 +341,9 @@ static void RGB_TIM_DMADelayPulseCplt(DMA_HandleTypeDef *hdma) {
 
 inline void Setup()
 {
-	matrix.RegLayer("f1.pxl", 1);
-	matrix.RegLayer("f2.pxl", 2);
-	matrix.RegLayer("f3.pxl", 0);
+	matrixObj.RegLayer("f1.pxl", 1);
+	matrixObj.RegLayer("f2.pxl", 2);
+	matrixObj.RegLayer("f3.pxl", 0);
 
 	// 0 - Фон / Заливка;
 	// 1 - Анимация;
@@ -354,22 +354,22 @@ inline void Setup()
 	// 6 - Повтороты право;
 	// 7 - Аварийка;
 
-	matrix.ShowLayer(0);
-	matrix.ShowLayer(1);
-	matrix.ShowLayer(2);
-	matrix.SetBrightness(10);
+	matrixObj.ShowLayer(0);
+	matrixObj.ShowLayer(1);
+	matrixObj.ShowLayer(2);
+	matrixObj.SetBrightness(10);
 	
-	matrix.GetFrameBuffer(frame_buffer_ptr, frame_buffer_len);
+	matrixObj.GetFrameBuffer(frame_buffer_ptr, frame_buffer_len);
 
-	//matrix.ManualMode(true);
-	//matrix.DrawPixel(5, 0xFF0000FF);
-	//matrix.DrawPixel(6, 0xFF00FF00);
-	//matrix.DrawPixel(7, 0xFFFF0000);
-	//matrix.DrawPixel(8, 0xAAFFFFFF);
-	//matrix.DrawPixel(0, 0, 0xFF0000FF);
-	//matrix.DrawPixel(5, 2, 0xFF00FF00);
-	//matrix.DrawPixel(6, 3, 0xFFFF0000);
-	//matrix.ManualDraw();
+	//matrixObj.ManualMode(true);
+	//matrixObj.DrawPixel(5, 0xFF0000FF);
+	//matrixObj.DrawPixel(6, 0xFF00FF00);
+	//matrixObj.DrawPixel(7, 0xFFFF0000);
+	//matrixObj.DrawPixel(8, 0xAAFFFFFF);
+	//matrixObj.DrawPixel(0, 0, 0xFF0000FF);
+	//matrixObj.DrawPixel(5, 2, 0xFF00FF00);
+	//matrixObj.DrawPixel(6, 3, 0xFFFF0000);
+	//matrixObj.ManualDraw();
 	
 	DMAInit();
 	
@@ -381,12 +381,12 @@ uint32_t timer1, timer2, timer3, timer4;
 inline void Loop(uint32_t &current_time)
 {
 	timer1 = HAL_GetTick();
-	matrix.Processing(current_time);
+	matrixObj.Processing(current_time);
 	timer2 = HAL_GetTick();
 	
-	if(matrix.IsBufferReady() == true)
+	if(matrixObj.IsBufferReady() == true)
 	{
-		matrix.SetFrameDrawStart();
+		matrixObj.SetFrameDrawStart();
 		
 		DMADraw();
 		
@@ -402,9 +402,9 @@ inline void Loop(uint32_t &current_time)
 		//Serial::Println();
 	}
 	
-	if( matrix.GetFrameIsDraw() == true && frame_buffer_idx == 0 )
+	if( matrixObj.GetFrameIsDraw() == true && frame_buffer_idx == 0 )
 	{
-		matrix.SetFrameDrawEnd();
+		matrixObj.SetFrameDrawEnd();
 	}
 	
 	// Обновляем текущее время, чтобы все последующий вызовы текущего loop получили его актуальным.

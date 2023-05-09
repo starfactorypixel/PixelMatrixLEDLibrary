@@ -496,7 +496,7 @@ int main(void)
 #ifdef MATRIX_LIB
 	CANLib::Setup();
     Matrix::Setup();
-	Output::Setup();
+	PowerOut::Setup();
 #endif
 
 
@@ -512,7 +512,7 @@ int main(void)
 #ifdef MATRIX_LIB
 		CANLib::Loop(current_time);
         Matrix::Loop(current_time);
-		Output::Loop(current_time);
+		PowerOut::Loop(current_time);
 #endif
 
         // CAN Manager checks data every 300 ms

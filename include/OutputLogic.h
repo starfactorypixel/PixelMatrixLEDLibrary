@@ -2,7 +2,7 @@
 
 #include  <PowerOutputs.h>
 
-namespace Output
+namespace PowerOut
 {
 	/* Настройки */
 	static constexpr uint8_t CFG_PortCount = 6;			// Кол-во портов управления.
@@ -11,7 +11,7 @@ namespace Output
 	static constexpr uint8_t CFG_ShuntResistance = 5;	// Сопротивление шунта, миллиомы.
 	/* */
 	
-	PowerOutputs<CFG_PortCount> OutObj(CFG_RefVoltage, CFG_INA180_Gain, CFG_ShuntResistance);
+	PowerOutputs<CFG_PortCount> outObj(CFG_RefVoltage, CFG_INA180_Gain, CFG_ShuntResistance);
 	
 	void OnShortCircuit(uint8_t num, uint16_t current)
 	{
@@ -20,22 +20,22 @@ namespace Output
 	
 	inline void Setup()
 	{
-		OutObj.AddPort( {GPIOB, GPIO_PIN_11, ADC_CHANNEL_6} );
-		OutObj.AddPort( {GPIOB, GPIO_PIN_10, ADC_CHANNEL_5} );
-		OutObj.AddPort( {GPIOB, GPIO_PIN_2, ADC_CHANNEL_4} );
-		OutObj.AddPort( {GPIOB, GPIO_PIN_1, ADC_CHANNEL_3} );
-		OutObj.AddPort( {GPIOB, GPIO_PIN_0, ADC_CHANNEL_2} );
-		OutObj.AddPort( {GPIOA, GPIO_PIN_7, ADC_CHANNEL_1} );
-		OutObj.Init();
+		outObj.AddPort( {GPIOB, GPIO_PIN_11, ADC_CHANNEL_6} );
+		outObj.AddPort( {GPIOB, GPIO_PIN_10, ADC_CHANNEL_5} );
+		outObj.AddPort( {GPIOB, GPIO_PIN_2, ADC_CHANNEL_4} );
+		outObj.AddPort( {GPIOB, GPIO_PIN_1, ADC_CHANNEL_3} );
+		outObj.AddPort( {GPIOB, GPIO_PIN_0, ADC_CHANNEL_2} );
+		outObj.AddPort( {GPIOA, GPIO_PIN_7, ADC_CHANNEL_1} );
+		outObj.Init();
 
-		//OutObj.On(4);
-		//OutObj.On(6);
-		//OutObj.Off(1);
-		OutObj.RegShortCircuitEvent(OnShortCircuit);
-		//OutObj.Current(1);
+		//outObj.On(4);
+		//outObj.On(6);
+		//outObj.Off(1);
+		outObj.RegShortCircuitEvent(OnShortCircuit);
+		//outObj.Current(1);
 
-		OutObj.SetOn(6, 250, 500);
-		OutObj.SetOn(5, 1000, 100);
+		outObj.SetOn(6, 250, 500);
+		outObj.SetOn(5, 1000, 100);
 		
 		return;
 	}
@@ -45,7 +45,7 @@ namespace Output
 
 	inline void Loop(uint32_t &current_time)
 	{
-		OutObj.Processing(current_time);
+		outObj.Processing(current_time);
 
 		if(current_time - last_time > 250)
 		{
@@ -55,13 +55,13 @@ namespace Output
 
 			for(uint8_t i = 1; i < 7; ++i)
 			{
-				//if(port_idx == i) OutObj.On(i);
-				//else OutObj.Off(i);
+				//if(port_idx == i) outObj.On(i);
+				//else outObj.Off(i);
 
 				Serial::Print("P");
 				Serial::Print((uint32_t)i);
 				Serial::Print(": ");
-				Serial::Print( (uint32_t)OutObj.GetCurrent(i) );
+				Serial::Print( (uint32_t)outObj.GetCurrent(i) );
 				Serial::Println();
 			}
 			Serial::Println();

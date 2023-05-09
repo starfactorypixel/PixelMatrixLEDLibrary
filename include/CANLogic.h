@@ -56,16 +56,16 @@ namespace CANLib
 		if (light_ecu_can_data.side_beam.brightness == 0)
 		{
 			//OUT1_OFF;
-			Matrix::matrix.HideLayer(2);
-			Output::OutObj.SetOff(3);
+			Matrix::matrixObj.HideLayer(2);
+			PowerOut::outObj.SetOff(3);
 		}
 		else
 		{
 			//OUT1_ON;
-			Matrix::matrix.ShowLayer(2);
-			Output::OutObj.SetOn(3);
+			Matrix::matrixObj.ShowLayer(2);
+			PowerOut::outObj.SetOn(3);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
-			// matrix.SetBrightness(light_ecu_can_data.side_beam.brightness);
+			// matrixObj.SetBrightness(light_ecu_can_data.side_beam.brightness);
 		}
 	}
 
@@ -83,14 +83,14 @@ namespace CANLib
 		if (light_ecu_can_data.brake_light.brightness == 0)
 		{
 			//OUT2_OFF;
-			Matrix::matrix.HideLayer(4);
+			Matrix::matrixObj.HideLayer(4);
 		}
 		else
 		{
 			//OUT2_ON;
-			Matrix::matrix.ShowLayer(4);
+			Matrix::matrixObj.ShowLayer(4);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
-			// matrix.SetBrightness(light_ecu_can_data.brake_light.brightness);
+			// matrixObj.SetBrightness(light_ecu_can_data.brake_light.brightness);
 		}
 	}
 
@@ -108,12 +108,12 @@ namespace CANLib
 		if (light_ecu_can_data.reverse_light.brightness == 0)
 		{
 			//OUT3_OFF;
-			Matrix::matrix.HideLayer(3);
+			Matrix::matrixObj.HideLayer(3);
 		}
 		else
 		{
 			//OUT3_ON;
-			Matrix::matrix.ShowLayer(3);
+			Matrix::matrixObj.ShowLayer(3);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
 			// matrix.SetBrightness(light_ecu_can_data.reverse_light.brightness);
 		}
@@ -134,14 +134,14 @@ namespace CANLib
 		if (light_ecu_can_data.left_indicator.brightness == 0)
 		{
 			//OUT4_OFF;
-			Matrix::matrix.HideLayer(5);
+			Matrix::matrixObj.HideLayer(5);
 		}
 		else
 		{
 			//OUT4_ON;
-			Matrix::matrix.ShowLayer(5);
+			Matrix::matrixObj.ShowLayer(5);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
-			// matrix.SetBrightness(light_ecu_can_data.left_indicator.brightness);
+			// matrixObj.SetBrightness(light_ecu_can_data.left_indicator.brightness);
 		}
 	}
 
@@ -160,14 +160,14 @@ namespace CANLib
 		if (light_ecu_can_data.right_indicator.brightness == 0)
 		{
 			//OUT5_OFF;
-			Matrix::matrix.HideLayer(6);
+			Matrix::matrixObj.HideLayer(6);
 		}
 		else
 		{
 			//OUT5_ON;
-			Matrix::matrix.ShowLayer(6);
+			Matrix::matrixObj.ShowLayer(6);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
-			// matrix.SetBrightness(light_ecu_can_data.right_indicator.brightness);
+			// matrixObj.SetBrightness(light_ecu_can_data.right_indicator.brightness);
 		}
 	}
 
@@ -187,17 +187,17 @@ namespace CANLib
 		{
 			//OUT4_OFF;
 			//OUT5_OFF;
-			Matrix::matrix.HideLayer(5);
-			Matrix::matrix.HideLayer(6);
+			Matrix::matrixObj.HideLayer(5);
+			Matrix::matrixObj.HideLayer(6);
 		}
 		else
 		{
 			//OUT4_ON;
 			//OUT5_ON;
-			Matrix::matrix.ShowLayer(5);
-			Matrix::matrix.ShowLayer(6);
+			Matrix::matrixObj.ShowLayer(5);
+			Matrix::matrixObj.ShowLayer(6);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
-			// matrix.SetBrightness(light_ecu_can_data.hazard_beam.brightness);
+			// matrixObj.SetBrightness(light_ecu_can_data.hazard_beam.brightness);
 		}
 	}
 
@@ -238,13 +238,13 @@ namespace CANLib
 		// TODO: надо же ещё мигать выводами OUTx?
 		if (light_ecu_can_data.custom_image.brightness == 0)
 		{
-			Matrix::matrix.HideLayer(1);
+			Matrix::matrixObj.HideLayer(1);
 		}
 		else
 		{
-			Matrix::matrix.ShowLayer(1);
+			Matrix::matrixObj.ShowLayer(1);
 			// TODO: установка яркости не корректна, так как задаётся яркость всей панели, а не только одних огней
-			// matrix.SetBrightness(light_ecu_can_data.custom_image.brightness);
+			// matrixObj.SetBrightness(light_ecu_can_data.custom_image.brightness);
 		}
 	}
 	
