@@ -1,3 +1,5 @@
+#pragma once
+
 //#define MATRIX_STEP_BY_STEP
 #include <MatrixLed.h>
 
@@ -393,7 +395,7 @@ inline void Loop(uint32_t &current_time)
 		//Serial::Println();
 		
 		//Serial::Print("+SF-PXL=128,16,2\r\n");
-		Serial::Print(frame_buffer_ptr, frame_buffer_len);
+		//Serial::Print(frame_buffer_ptr, frame_buffer_len);
 		
 		//Serial::Print("LogicTime: ");
 		//Serial::Print( (timer2 - timer1) );

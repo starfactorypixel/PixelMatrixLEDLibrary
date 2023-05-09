@@ -1,3 +1,5 @@
+#pragma once
+
 #include <inttypes.h>
 
 extern UART_HandleTypeDef huart1;
@@ -9,12 +11,24 @@ namespace Serial
 	
 	HAL_StatusTypeDef Print(const char *str)
 	{
-		return HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), 1000);
+		HAL_StatusTypeDef result = HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), 1000);
+		if(result != HAL_OK)
+		{
+			HAL_UART_AbortTransmit(&huart1);
+		}
+		
+		return result;
 	}
 
 	HAL_StatusTypeDef Print(const uint8_t *str, uint16_t length)
 	{
-		return HAL_UART_Transmit(&huart1, (uint8_t*)str, length, 1000);
+		HAL_StatusTypeDef result = HAL_UART_Transmit(&huart1, (uint8_t*)str, length, 1000);
+		if(result != HAL_OK)
+		{
+			HAL_UART_AbortTransmit(&huart1);
+		}
+		
+		return result;
 	}
 	
 	HAL_StatusTypeDef Print(uint32_t num, uint8_t radix = 10)
