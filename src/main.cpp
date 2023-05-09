@@ -181,6 +181,8 @@ void init_can_manager_and_objects()
     can_manager.RegisterObject(obj_hazard_beam);
     can_manager.RegisterObject(obj_custom_beam);
     can_manager.RegisterObject(obj_custom_image);
+
+    obj_block_info.SetValue(0, 0x66, CAN_TIMER_TYPE_NORMAL);
 }
 
 // вызывается, если по CAN пришла команда включения/выключения габаритов
@@ -455,7 +457,7 @@ void HAL_CAN_Send(can_object_id_t id, uint8_t *data, uint8_t length)
     }
     LedYellow_OFF
 
-    if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+        if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
     {
         LOG("CAN TX ERROR: 0x%04lX", TxHeader.StdId);
     }
@@ -756,7 +758,6 @@ int main(void)
     // init CANManager
     init_can_manager_and_objects();
 
-    uint32_t can_manager_last_tick = HAL_GetTick();
     while (1)
     {
         current_time = HAL_GetTick();
@@ -769,12 +770,7 @@ int main(void)
 #endif
 
         // CAN Manager checks data every 300 ms
-        if (current_time - can_manager_last_tick > 100)
-        {
-            can_manager.Process(current_time);
-
-            can_manager_last_tick = HAL_GetTick();
-        }
+        can_manager.Process(current_time);
 
         if (Button1 == 0)
         {
@@ -1197,8 +1193,7 @@ void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
-    LedGreen_ON
-    while (1)
+    LedGreen_ON while (1)
     {
     }
     /* USER CODE END Error_Handler_Debug */
