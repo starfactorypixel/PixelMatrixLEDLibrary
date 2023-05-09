@@ -128,18 +128,6 @@ void DMAInit()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 static void RGB_TIM_DMADelayPulseCplt(DMA_HandleTypeDef *hdma);
 static void RGB_TIM_DMADelayPulseHalfCplt(DMA_HandleTypeDef *hdma);
 
@@ -209,7 +197,7 @@ void DMADraw()
                 __HAL_TIM_ENABLE(&TIM_HANDLE);
             DMA_Send_Stat = HAL_OK;
         }
-        frame_buffer_idx = 12;		// old set 2
+        frame_buffer_idx = 12;
         return;
     }
 }
@@ -233,19 +221,7 @@ static void RGB_TIM_DMADelayPulseHalfCplt(DMA_HandleTypeDef *hdma) {
 					
             dma_buffer[i + 24] = (((frame_buffer_ptr[frame_buffer_idx + 3] << i) & 0x80) > 0) ? PWM_HI : PWM_LO;
             dma_buffer[i + 32] = (((frame_buffer_ptr[frame_buffer_idx + 4] << i) & 0x80) > 0) ? PWM_HI : PWM_LO;
-            dma_buffer[i + 40] = (((frame_buffer_ptr[frame_buffer_idx + 5] << i) & 0x80) > 0) ? PWM_HI : PWM_LO;
-					
-// for debag			
-//		dma_buffer[i] = RGB_test(dma_buffer[i]);
-//		dma_buffer[i + 8] = RGB_test(dma_buffer[i+ 8]);
-//		dma_buffer[i + 16] = RGB_test(dma_buffer[i+ 16]);
-//	
-//		dma_buffer[i + 24] = RGB_test(dma_buffer[i+ 24]);
-//		dma_buffer[i + 32] = RGB_test(dma_buffer[i+ 32]);
-//		dma_buffer[i + 40] = RGB_test(dma_buffer[i+ 40]);
-					
-					
-					
+            dma_buffer[i + 40] = (((frame_buffer_ptr[frame_buffer_idx + 5] << i) & 0x80) > 0) ? PWM_HI : PWM_LO;		
 					
         }
         frame_buffer_idx += 6;			// old set ++
