@@ -144,10 +144,10 @@ public:
 			
 			layer.parser.GetAutoFrame(time, [&](pixel_data_t &pixel_data)
 			{
-				if (pixel_data.color4 == 255)
-				{
-					memcpy(_frame_buff + pixel_data.index, &pixel_data.color1, 3);
-				}
+				if (pixel_data.color4 < 255)
+					return;
+
+				memcpy(_frame_buff + pixel_data.index, &pixel_data.color1, 3);
 			});
 		}
 		
@@ -183,16 +183,16 @@ public:
 		}
 		
 		layers_t &layer = _layers[_layers_idx++];
-		if(layer.active == true)
+		if(!layer.active)
+			return;
+
+		layer.parser.GetAutoFrame(time, [&](pixel_data_t &pixel_data)
 		{
-			layer.parser.GetAutoFrame(time, [&](pixel_data_t &pixel_data)
-			{
-				if (pixel_data.color4 == 255)
-				{
-					memcpy(_frame_buff + pixel_data.index, &pixel_data.color1, 3);
-				}
-			});
-		}
+			if (pixel_data.color4 < 255)
+				return;
+
+			memcpy(_frame_buff + pixel_data.index, &pixel_data.color1, 3);
+		});
 		
 		return;
 	}
