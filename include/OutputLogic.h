@@ -34,8 +34,8 @@ namespace PowerOut
 		outObj.RegShortCircuitEvent(OnShortCircuit);
 		//outObj.Current(1);
 
-		outObj.SetOn(6, 250, 500);
-		outObj.SetOn(5, 1000, 100);
+		//outObj.SetOn(6, 250, 500);
+		//outObj.SetOn(5, 1000, 100);
 		
 		return;
 	}
