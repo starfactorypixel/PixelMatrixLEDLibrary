@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "sd.h"
+#include <Leds.h>
 #include <SerialUtils.h>
 #include <MatrixLogic.h>
 #include <OutputLogic.h>
@@ -132,7 +133,8 @@ void InitFlash()
     // f_mount(&SDFatFs, "", 0);
     if (f_mount(&SDFatFs, "", 1) != FR_OK)
     {
-        LedRed_ON;
+        //LedRed_ON;
+		Leds::ledsObj.SetOn(Leds::ledsObj.LED_RED, 250, 250);
     }
     /*
     else
@@ -227,6 +229,9 @@ int main(void)
     InitPeripherals();
     InitialLEDblinks();
 
+	// Сразу после инициализации периферии, иначе программа упадёт, если попробовать включить диод.
+	Leds::Setup();
+
     /* активируем события которые будут вызывать прерывания  */
     HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE);
 
@@ -243,7 +248,7 @@ int main(void)
     {
         // don't need to update current_time because it is always updated by Loop() functions
         // current_time = HAL_GetTick();
-
+		Leds::Loop(current_time);
         CANLib::Loop(current_time);
         Matrix::Loop(current_time);
         PowerOut::Loop(current_time);
