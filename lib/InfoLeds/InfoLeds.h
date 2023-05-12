@@ -38,7 +38,7 @@ class InfoLeds
 		
 		void AddLed(channel_t channel, led_t led)
 		{
-			if(led > _leds_max) return;
+			if(led > _leds_max || led == 0) return;
 			
 			_channels[led-1] = channel;
 			
@@ -47,7 +47,7 @@ class InfoLeds
 		
 		void SetOn(led_t led)
 		{
-			if(led > _leds_max) return;
+			if(led > _leds_max || led == 0) return;
 			
 			channel_t &channel = _channels[led-1];
 			_HW_HIGH(channel);
@@ -58,7 +58,7 @@ class InfoLeds
 		
 		void SetOn(led_t led, uint16_t blink_on, uint16_t blink_off)
 		{
-			if(led > _leds_max) return;
+			if(led > _leds_max || led == 0) return;
 			
 			channel_t &channel = _channels[led-1];
 			SetOn(led);
@@ -71,7 +71,7 @@ class InfoLeds
 		
 		void SetOff(led_t led)
 		{
-			if(led > _leds_max) return;
+			if(led > _leds_max || led == 0) return;
 			
 			channel_t &channel = _channels[led-1];
 			_HW_LOW(channel);
