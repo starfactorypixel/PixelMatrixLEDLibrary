@@ -3,8 +3,7 @@
 In `platformio.ini` add library to the `lib_deps`:
 ```
 lib_deps = 
-	# Pixel's CAN library
-	https://github.com/starfactorypixel/PixelCANLibrary
+	https://github.com/starfactorypixel/PixelMatrixLEDLibrary
 ```
 
 If you need particular branch or tag, use this syntax:
