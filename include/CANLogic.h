@@ -52,12 +52,12 @@ namespace CANLib
 		if (can_frame.data[0] == 0)
 		{
 			Matrix::matrixObj.HideLayer(2);
-			PowerOut::outObj.SetOff(2);
+			Outputs::outObj.SetOff(2);
 		}
 		else
 		{
 			Matrix::matrixObj.ShowLayer(2);
-			PowerOut::outObj.SetOn(2);
+			Outputs::outObj.SetOn(2);
 		}
 
 		can_frame.initialized = true;
@@ -77,12 +77,12 @@ namespace CANLib
 		if (can_frame.data[0] == 0)
 		{
 			Matrix::matrixObj.HideLayer(4);
-			PowerOut::outObj.SetOff(4);
+			Outputs::outObj.SetOff(4);
 		}
 		else
 		{
 			Matrix::matrixObj.ShowLayer(4);
-			PowerOut::outObj.SetOn(4);
+			Outputs::outObj.SetOn(4);
 		}
 
 		can_frame.initialized = true;
@@ -100,12 +100,12 @@ namespace CANLib
 		if (can_frame.data[0] == 0)
 		{
 			Matrix::matrixObj.HideLayer(3);
-			PowerOut::outObj.SetOff(3);
+			Outputs::outObj.SetOff(3);
 		}
 		else
 		{
 			Matrix::matrixObj.ShowLayer(3);
-			PowerOut::outObj.SetOn(3);
+			Outputs::outObj.SetOn(3);
 		}
 
 		can_frame.initialized = true;
@@ -123,12 +123,12 @@ namespace CANLib
 		if (can_frame.data[0] == 0)
 		{
 			Matrix::matrixObj.HideLayer(5);
-			PowerOut::outObj.SetOff(5);
+			Outputs::outObj.SetOff(5);
 		}
 		else
 		{
 			Matrix::matrixObj.ShowLayer(5);
-			PowerOut::outObj.SetOn(5, 750, 750);
+			Outputs::outObj.SetOn(5, 750, 750);
 		}
 
 		can_frame.initialized = true;
@@ -146,12 +146,12 @@ namespace CANLib
 		if (can_frame.data[0] == 0)
 		{
 			Matrix::matrixObj.HideLayer(6);
-			PowerOut::outObj.SetOff(6);
+			Outputs::outObj.SetOff(6);
 		}
 		else
 		{
 			Matrix::matrixObj.ShowLayer(6);
-			PowerOut::outObj.SetOn(6, 750, 750);
+			Outputs::outObj.SetOn(6, 750, 750);
 		}
 
 		can_frame.initialized = true;
@@ -169,14 +169,14 @@ namespace CANLib
 		if (can_frame.data[0] == 0)
 		{
 			Matrix::matrixObj.HideLayer(7);
-			PowerOut::outObj.SetOff(5);
-			PowerOut::outObj.SetOff(6);
+			Outputs::outObj.SetOff(5);
+			Outputs::outObj.SetOff(6);
 		}
 		else
 		{
 			Matrix::matrixObj.ShowLayer(7);
-			PowerOut::outObj.SetOn(5, 750, 750);
-			PowerOut::outObj.SetOn(6, 750, 750);
+			Outputs::outObj.SetOn(5, 750, 750);
+			Outputs::outObj.SetOn(6, 750, 750);
 		}
 
 		can_frame.initialized = true;
@@ -193,11 +193,11 @@ namespace CANLib
 		// if (light_ecu_can_data.custom_beam.brightness == 0)
 		if (can_frame.data[0] == 0)
 		{
-			PowerOut::outObj.SetOff(1);
+			Outputs::outObj.SetOff(1);
 		}
 		else
 		{
-			PowerOut::outObj.SetOn(1);
+			Outputs::outObj.SetOn(1);
 		}
 
 		can_frame.initialized = true;

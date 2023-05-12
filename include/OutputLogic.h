@@ -1,8 +1,8 @@
 #pragma once
 
-#include  <PowerOutputs.h>
+#include  <PowerOut.h>
 
-namespace PowerOut
+namespace Outputs
 {
 	/* Настройки */
 	static constexpr uint8_t CFG_PortCount = 6;			// Кол-во портов управления.
@@ -11,7 +11,7 @@ namespace PowerOut
 	static constexpr uint8_t CFG_ShuntResistance = 5;	// Сопротивление шунта, миллиомы.
 	/* */
 	
-	PowerOutputs<CFG_PortCount> outObj(CFG_RefVoltage, CFG_INA180_Gain, CFG_ShuntResistance);
+	PowerOut<CFG_PortCount> outObj(CFG_RefVoltage, CFG_INA180_Gain, CFG_ShuntResistance);
 	
 	void OnShortCircuit(uint8_t num, uint16_t current)
 	{

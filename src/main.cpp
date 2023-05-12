@@ -241,7 +241,7 @@ int main(void)
 
     CANLib::Setup();
     Matrix::Setup();
-    PowerOut::Setup();
+    Outputs::Setup();
 
     uint32_t current_time = HAL_GetTick();
     while (1)
@@ -251,7 +251,7 @@ int main(void)
 		Leds::Loop(current_time);
         CANLib::Loop(current_time);
         Matrix::Loop(current_time);
-        PowerOut::Loop(current_time);
+        Outputs::Loop(current_time);
     }
 }
 
