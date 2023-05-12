@@ -1,0 +1,11 @@
+{
+  "name": "PixelMatrixLEDLibrary",
+  "description": "This library works with addressable LED displays. It is a part of Pixel solar car project.",
+  "version": "0.0.1",
+  "repository":
+  {
+      "type": "git",
+      "url": "https://github.com/starfactorypixel/PixelMatrixLEDLibrary"
+  },
+  "headers": "MatrixLogic.h"
+}
