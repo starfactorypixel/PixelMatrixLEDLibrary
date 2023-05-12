@@ -1,6 +1,6 @@
 # Dependencies
 
-**ATTENTION!** FatFs module required to use this library!
+**ATTENTION!** `FatFs` module required to use this library!
 
 
 # Using in your project
