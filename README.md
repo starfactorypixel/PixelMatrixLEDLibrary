@@ -1,3 +1,8 @@
+# Dependencies
+
+**ATTENTION!** FatFs module required to use this library!
+
+
 # Using in your project
 
 In `platformio.ini` add library to the `lib_deps`:
@@ -12,7 +17,6 @@ lib_deps =
 	https://github.com/username/library_name#branch_name
 	https://github.com/username/library_name#v2.0
 ```
-
 
 
 # Update library in you project
