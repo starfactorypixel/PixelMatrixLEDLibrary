@@ -1,6 +1,6 @@
 #pragma once
 
-#include <InfoLeds.h>
+#include <LEDLibrary.h>
 
 namespace Leds
 {
