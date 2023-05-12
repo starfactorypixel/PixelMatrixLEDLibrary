@@ -7,5 +7,5 @@
       "type": "git",
       "url": "https://github.com/starfactorypixel/PixelMatrixLEDLibrary"
   },
-  "headers": "MatrixLogic.h"
+  "headers": "MatrixLed.h"
 }
