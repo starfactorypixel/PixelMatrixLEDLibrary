@@ -24,7 +24,7 @@ class MatrixLed
 	} color_t;
 
 public:
-	MatrixLed(uint16_t fps) : _fps(fps), _brightness(255)
+	MatrixLed(uint16_t fps) : _fps(fps), _brightness(64)
 	{
 		memset(_layers, 0x00, sizeof(_layers));
 		
@@ -35,9 +35,14 @@ public:
 	{
 		if (idx < _max_layers)
 		{
+			if(_layers[idx].is_set == true)
+			{
+				_layers[idx].parser.CloseFile();
+			}
+			
 			_layers[idx].active = false;
 			_layers[idx].is_set = true;
-
+			
 			return _layers[idx].parser.OpenFile(filename);
 		}
 

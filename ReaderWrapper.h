@@ -40,11 +40,11 @@ class ReaderWrapper
 			return read_size;
 		}
 		
-		void Close()
+		FRESULT Close()
 		{
-
-
-			return;
+			_file_is_open = false;
+			
+			return f_close(&_file_obj);
 		}
 		
 		uint8_t *GetBufferPtr()

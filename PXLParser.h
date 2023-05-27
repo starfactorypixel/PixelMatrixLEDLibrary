@@ -66,13 +66,15 @@ public:
 
 	error_t OpenFile(const char *filename)
 	{
+		ReInit();
+		
 		if( _reader.Open(filename) == 0 )
 		{
 			if( _reader.Read(_file_offset, _file_header_size_bytes) == _file_header_size_bytes )
 			{
-				_ParseFileHeader( _reader.GetBufferPtr() );
+				_file_offset = _file_header_size_bytes;
 				
-				ReInit();
+				_ParseFileHeader( _reader.GetBufferPtr() );
 			}
 		}
 		else
@@ -82,7 +84,14 @@ public:
 		
 		return _error;
 	}
-
+	
+	void CloseFile()
+	{
+		_reader.Close();
+		
+		return;
+	}
+	
 	/*
 
 	*/
@@ -232,7 +241,8 @@ public:
 
 	void ReInit()
 	{
-		_file_offset = _file_header_size_bytes;
+		//_file_offset = _file_header_size_bytes;
+		_file_offset = 0;
 		_frame_current = 0;
 		_img_repeats_count = 0;
 
@@ -259,9 +269,9 @@ private:
 		_header_file.format_color = (data[6] >> 4) & 0x0F;
 		_header_file.img_frames = data[7] | (data[8] << 8);
 		_header_file.img_repeats = (data[9] == 0) ? 1 : data[9];	// Если указано 0 повторов, то считаем что нужно показать 1 раз.
-
+		
 		_AnalysisFile();
-
+		
 		return;
 	}
 
