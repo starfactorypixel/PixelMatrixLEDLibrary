@@ -26,7 +26,14 @@ class MatrixLed
 public:
 	MatrixLed(uint16_t fps) : _fps(fps), _brightness(64)
 	{
-		memset(_layers, 0x00, sizeof(_layers));
+		// CWE-762:Using 'memset' on class that contains a 'std::function'.
+		//memset(_layers, 0x00, sizeof(_layers));
+		for(layers_t &layer : _layers)
+		{
+			layer.active = false;
+			layer.is_set = false;
+			layer.parser.ReInit();
+		}
 		
 		_ClearBuffer();
 	}

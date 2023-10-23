@@ -56,9 +56,12 @@ class ReaderWrapper
 		
 		request_callback_t _request_callback = nullptr;
 		
-		static inline uint8_t _buffer[_buffer_size];
+		static uint8_t _buffer[_buffer_size];
 		uint16_t _buffer_idx;
 		
 		FIL _file_obj;
 		bool _file_is_open;
 };
+
+#warning Temporary static initialization.
+template<> uint8_t ReaderWrapper<512>::_buffer[512] = {0};
