@@ -7,18 +7,7 @@
 template <uint16_t _buffer_size> 
 class ReaderWrapper
 {
-	static const uint8_t _filename_length = 13; // Формат 8.3.
-	
-	typedef std::function<uint16_t(const char *filename, const uint32_t offset, const uint16_t length, uint8_t *buffer, const uint16_t buffer_size)> request_callback_t;
-	
 	public:
-		
-		void SetRequestCallback(request_callback_t callback)
-		{
-			_request_callback = callback;
-			
-			return;
-		}
 		
 		FRESULT Open(const char *filename)
 		{
@@ -54,13 +43,11 @@ class ReaderWrapper
 		
 	private:
 		
-		request_callback_t _request_callback = nullptr;
-		
-		static uint8_t _buffer[_buffer_size];
-		uint16_t _buffer_idx;
-		
 		FIL _file_obj;
 		bool _file_is_open;
+		
+		static uint8_t _buffer[_buffer_size];
+		
 };
 
 #warning Temporary static initialization.
